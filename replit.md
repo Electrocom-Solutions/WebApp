@@ -81,13 +81,16 @@ The frontend is designed to match the database schema provided in the requiremen
 - Notification, EmailTemplate, DocumentTemplate, BankAccount, HolidayCalendar
 
 ## Current Status
-- ✅ Project setup with Next.js 14, TypeScript, and Tailwind CSS
+- ✅ Project setup with Next.js 15, TypeScript, and Tailwind CSS
 - ✅ Global layout with collapsible sidebar and header
-- ✅ Theme provider with light/dark mode
+- ✅ Dark theme as default with pre-hydration script (no flash, no hydration errors)
+- ✅ Theme provider with light/dark mode toggle
 - ✅ Reusable UI components
 - ✅ Dashboard with overview cards and quick actions
-- ✅ Client, AMC, and Tender modules with data tables
-- ✅ All 19 module pages created (some with full implementation, others with placeholders)
+- ✅ **Document Management**: Complete with CRUD, version control, bulk operations, PDF preview, full dark theme
+- ✅ **Client Management**: Comprehensive with CRUD, search, multi-filters, grid/table views, bulk actions, full dark theme
+- ✅ AMC and Tender modules with data tables
+- ✅ All 19 module pages created (Documents and Clients fully implemented, others with placeholders)
 - ✅ Responsive design ready
 
 ## Next Steps
@@ -121,6 +124,17 @@ The frontend is designed to match the database schema provided in the requiremen
   - Dark: gray-800 cards on gray-900 background (default)
 - **Typography**: System fonts with clear hierarchy, use `dark:text-white` and `dark:text-gray-400` variants
 - **Color Philosophy**: Clean, minimal aesthetic with proper dark theme support across all components. All new pages MUST include dark theme variants using Tailwind's dark: prefix
+
+## Technical Implementation Notes
+
+### Dark Theme Default
+The dark theme is applied as default through a multi-layered approach to prevent hydration mismatches:
+1. **Static SSR**: HTML element has `className="dark"` for server-side rendering
+2. **Pre-hydration Script**: Inline script in layout reads localStorage and applies theme class before React hydrates
+3. **Theme Provider**: Client-side provider defaults to "dark" and synchronizes with localStorage
+4. **No Flash**: Users never see a light theme flash when loading the app
+
+This implementation eliminates hydration errors and ensures consistent dark mode across page loads.
 
 ## Notes
 - All forms and data structures match the provided database schema
