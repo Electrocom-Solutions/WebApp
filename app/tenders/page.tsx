@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import DashboardLayout from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   Plus,
   Search,
@@ -17,95 +17,78 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Tender, TenderFinancials } from "@/types";
-
-// Mock data
-const mockTenders: Tender[] = [
-  {
-    id: 1,
-    name: "Smart City Infrastructure Project",
-    reference_number: "TND/2024/001",
-    description: "Development of smart city infrastructure including traffic management and surveillance systems",
-    filed_date: "2024-10-15",
-    start_date: "2024-11-01",
-    end_date: "2025-10-31",
-    estimated_value: 10000000,
-    status: "Filed",
-    created_at: "2024-10-10T10:00:00Z",
-    updated_at: "2024-10-15T14:30:00Z",
-  },
-  {
-    id: 2,
-    name: "Municipal Office Networking",
-    reference_number: "TND/2024/002",
-    description: "Complete networking solution for 5 municipal office buildings",
-    filed_date: "2024-09-20",
-    start_date: "2024-10-01",
-    end_date: "2025-03-31",
-    estimated_value: 2500000,
-    status: "Awarded",
-    created_at: "2024-09-15T09:00:00Z",
-    updated_at: "2024-10-25T11:00:00Z",
-  },
-  {
-    id: 3,
-    name: "State Highway CCTV Installation",
-    reference_number: "TND/2024/003",
-    description: "Installation of CCTV cameras along 50km state highway stretch",
-    filed_date: "2024-08-10",
-    start_date: "2024-09-01",
-    end_date: "2024-12-31",
-    estimated_value: 5000000,
-    status: "Lost",
-    created_at: "2024-08-05T10:00:00Z",
-    updated_at: "2024-09-15T16:00:00Z",
-  },
-  {
-    id: 4,
-    name: "Healthcare IT Modernization",
-    reference_number: "TND/2024/004",
-    description: "IT infrastructure upgrade for district hospitals",
-    filed_date: undefined,
-    start_date: "2025-01-01",
-    end_date: "2025-12-31",
-    estimated_value: 8000000,
-    status: "Draft",
-    created_at: "2024-11-01T10:00:00Z",
-    updated_at: "2024-11-01T10:00:00Z",
-  },
-  {
-    id: 5,
-    name: "Public WiFi Network Deployment",
-    reference_number: "TND/2024/005",
-    description: "Deployment of public WiFi across 20 city locations",
-    filed_date: "2024-07-15",
-    start_date: "2024-08-01",
-    end_date: "2024-11-30",
-    estimated_value: 3000000,
-    status: "Closed",
-    created_at: "2024-07-10T10:00:00Z",
-    updated_at: "2024-11-20T15:00:00Z",
-  },
-];
-
-const mockFinancials: TenderFinancials[] = mockTenders.map((tender) => ({
-  id: tender.id,
-  tender_id: tender.id,
-  emd_amount: tender.estimated_value * 0.05, // 5%
-  emd_refundable: tender.status !== "Awarded",
-  sd1_amount: tender.estimated_value * 0.02, // 2%
-  sd1_refundable: false,
-  sd2_amount: tender.estimated_value * 0.03, // 3%
-  sd2_refundable: false,
-}));
+import TenderFormModal from "@/components/tenders/tender-form-modal";
+import { mockTenders as initialTenders } from "@/lib/mock-data/tenders";
 
 export default function TendersPage() {
+  const [tenders, setTenders] = useState<Tender[]>(initialTenders);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [isTenderModalOpen, setIsTenderModalOpen] = useState(false);
+  const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
+
+  // Calculate financials dynamically
+  const mockFinancials: TenderFinancials[] = useMemo(
+    () =>
+      tenders.map((tender) => ({
+        id: tender.id,
+        tender_id: tender.id,
+        emd_amount: tender.estimated_value * 0.05, // 5%
+        emd_refundable: tender.status !== "Awarded",
+        sd1_amount: tender.estimated_value * 0.02, // 2%
+        sd1_refundable: false,
+        sd2_amount: tender.estimated_value * 0.03, // 3%
+        sd2_refundable: false,
+      })),
+    [tenders]
+  );
+
+  // CRUD handlers
+  const handleNewTender = () => {
+    setSelectedTender(null);
+    setIsTenderModalOpen(true);
+  };
+
+  const handleEditTender = (tender: Tender) => {
+    setSelectedTender(tender);
+    setIsTenderModalOpen(true);
+  };
+
+  const handleCreateTender = (tenderData: Omit<Tender, "id" | "created_at" | "updated_at">) => {
+    const newTender: Tender = {
+      ...tenderData,
+      id: Math.max(...tenders.map((t) => t.id), 0) + 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setTenders([...tenders, newTender]);
+  };
+
+  const handleUpdateTender = (tenderData: Omit<Tender, "id" | "created_at" | "updated_at">) => {
+    if (!selectedTender) return;
+
+    const updatedTender: Tender = {
+      ...tenderData,
+      id: selectedTender.id,
+      created_at: selectedTender.created_at,
+      updated_at: new Date().toISOString(),
+    };
+
+    setTenders(tenders.map((t) => (t.id === selectedTender.id ? updatedTender : t)));
+  };
+
+  const handleTenderSubmit = (tenderData: Omit<Tender, "id" | "created_at" | "updated_at">) => {
+    if (selectedTender) {
+      handleUpdateTender(tenderData);
+    } else {
+      handleCreateTender(tenderData);
+    }
+  };
 
   // Search and filter
   const filteredTenders = useMemo(() => {
-    return mockTenders.filter((tender) => {
+    return tenders.filter((tender) => {
       const matchesSearch =
         searchQuery === "" ||
         tender.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,22 +98,22 @@ export default function TendersPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, statusFilter]);
+  }, [tenders, searchQuery, statusFilter]);
 
   // Stats
   const stats = useMemo(() => {
     return {
-      total: mockTenders.length,
-      draft: mockTenders.filter((t) => t.status === "Draft").length,
-      filed: mockTenders.filter((t) => t.status === "Filed").length,
-      awarded: mockTenders.filter((t) => t.status === "Awarded").length,
-      lost: mockTenders.filter((t) => t.status === "Lost").length,
-      totalValue: mockTenders.reduce((sum, t) => sum + t.estimated_value, 0),
-      awardedValue: mockTenders
+      total: tenders.length,
+      draft: tenders.filter((t) => t.status === "Draft").length,
+      filed: tenders.filter((t) => t.status === "Filed").length,
+      awarded: tenders.filter((t) => t.status === "Awarded").length,
+      lost: tenders.filter((t) => t.status === "Lost").length,
+      totalValue: tenders.reduce((sum, t) => sum + t.estimated_value, 0),
+      awardedValue: tenders
         .filter((t) => t.status === "Awarded")
         .reduce((sum, t) => sum + t.estimated_value, 0),
     };
-  }, []);
+  }, [tenders]);
 
   const getStatusBadgeClass = (status: Tender["status"]) => {
     switch (status) {
@@ -173,10 +156,7 @@ export default function TendersPage() {
   return (
     <DashboardLayout
       title="Tenders"
-      breadcrumbs={[
-        { label: "Home", href: "/" },
-        { label: "Tenders", href: "/tenders" },
-      ]}
+      breadcrumbs={["Home", "Tenders"]}
     >
       <div className="space-y-6">
         {/* Header */}
@@ -187,7 +167,10 @@ export default function TendersPage() {
               Manage tender pipeline, EMD, security deposits, and documents
             </p>
           </div>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+          <button
+            onClick={handleNewTender}
+            className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+          >
             <Plus className="h-4 w-4" />
             New Tender
           </button>
@@ -394,6 +377,7 @@ export default function TendersPage() {
                               <Eye className="h-4 w-4" />
                             </Link>
                             <button
+                              onClick={() => handleEditTender(tender)}
                               className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                               title="Edit Tender"
                             >
@@ -476,6 +460,7 @@ export default function TendersPage() {
                             View
                           </button>
                           <button
+                            onClick={() => handleEditTender(tender)}
                             className="flex-1 rounded bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
                             title="Edit"
                           >
@@ -507,12 +492,26 @@ export default function TendersPage() {
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Get started by creating your first tender
             </p>
-            <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+            <button
+              onClick={handleNewTender}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+            >
               <Plus className="h-4 w-4" />
               New Tender
             </button>
           </div>
         )}
+
+        {/* Tender Form Modal */}
+        <TenderFormModal
+          isOpen={isTenderModalOpen}
+          onClose={() => {
+            setIsTenderModalOpen(false);
+            setSelectedTender(null);
+          }}
+          onSubmit={handleTenderSubmit}
+          tender={selectedTender}
+        />
       </div>
     </DashboardLayout>
   );
