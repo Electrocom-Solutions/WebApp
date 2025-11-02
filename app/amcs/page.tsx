@@ -177,6 +177,10 @@ export default function AMCsPage() {
   const [expiryFilter, setExpiryFilter] = useState<number | null>(null);
   const [isAMCModalOpen, setIsAMCModalOpen] = useState(false);
   const [selectedAMC, setSelectedAMC] = useState<AMC | null>(null);
+  const [showBillingModal, setShowBillingModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [billingAMC, setBillingAMC] = useState<AMC | null>(null);
+  const [emailAMC, setEmailAMC] = useState<AMC | null>(null);
 
   const getAMCStats = (amc: AMC) => {
     const amcBills = billings.filter((b) => b.amc_id === amc.id);
@@ -518,12 +522,15 @@ export default function AMCsPage() {
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          href={`/amcs/${amc.id}`}
+                        <button
+                          onClick={() => {
+                            setBillingAMC(amc);
+                            setShowBillingModal(true);
+                          }}
                           className="text-sm font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
                         >
                           {amc.amc_number}
-                        </Link>
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white">
@@ -585,13 +592,16 @@ export default function AMCsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
-                          <Link
-                            href={`/amcs/${amc.id}`}
+                          <button
+                            onClick={() => {
+                              setBillingAMC(amc);
+                              setShowBillingModal(true);
+                            }}
                             className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                            title="View Details"
+                            title="View Billing Details"
                           >
                             <Eye className="h-4 w-4" />
-                          </Link>
+                          </button>
                           <button
                             onClick={() => handleEditAMC(amc)}
                             className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
@@ -600,8 +610,12 @@ export default function AMCsPage() {
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
+                            onClick={() => {
+                              setEmailAMC(amc);
+                              setShowEmailModal(true);
+                            }}
                             className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                            title="Send Reminder"
+                            title="Send Email"
                           >
                             <Mail className="h-4 w-4" />
                           </button>
@@ -645,7 +659,294 @@ export default function AMCsPage() {
           amc={selectedAMC}
           clients={mockClients}
         />
+
+        {/* Billing Details Modal */}
+        {showBillingModal && billingAMC && (
+          <AMCBillingModal
+            amc={billingAMC}
+            billings={billings.filter(b => b.amc_id === billingAMC.id)}
+            onClose={() => {
+              setShowBillingModal(false);
+              setBillingAMC(null);
+            }}
+          />
+        )}
+
+        {/* Email Template Modal */}
+        {showEmailModal && emailAMC && (
+          <EmailTemplateModal
+            amc={emailAMC}
+            onClose={() => {
+              setShowEmailModal(false);
+              setEmailAMC(null);
+            }}
+            onSend={(template, message) => {
+              console.log('Sending email with template:', template, 'Message:', message);
+              setShowEmailModal(false);
+              setEmailAMC(null);
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
+  );
+}
+
+function AMCBillingModal({ amc, billings, onClose }: {
+  amc: AMC;
+  billings: AMCBilling[];
+  onClose: () => void;
+}) {
+  const totalAmount = billings.reduce((sum, b) => sum + b.amount, 0);
+  const paidAmount = billings.filter(b => b.paid).reduce((sum, b) => sum + b.amount, 0);
+  const outstandingAmount = totalAmount - paidAmount;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-800 p-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              AMC Billing Details
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {amc.amc_number} - {amc.client_name}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <AlertCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Amount</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                ₹{totalAmount.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+              <p className="text-sm text-green-700 dark:text-green-400">Paid</p>
+              <p className="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">
+                ₹{paidAmount.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+              <p className="text-sm text-red-700 dark:text-red-400">Outstanding</p>
+              <p className="text-2xl font-bold text-red-900 dark:text-red-300 mt-1">
+                ₹{outstandingAmount.toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          {/* Billing Table */}
+          <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Bill Number
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Period
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Payment Details
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {billings.map((bill) => (
+                  <tr key={bill.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                      {bill.bill_number}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      {format(new Date(bill.period_from), 'dd MMM yyyy')} - {format(new Date(bill.period_to), 'dd MMM yyyy')}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      ₹{bill.amount.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      {bill.paid ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-400">
+                          Paid
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-400">
+                          Pending
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      {bill.paid && bill.payment_date ? (
+                        <div>
+                          <div>{format(new Date(bill.payment_date), 'dd MMM yyyy')}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-500">{bill.payment_mode}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {billings.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+              <p className="mt-4 text-gray-500 dark:text-gray-400">No billing records found</p>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t dark:border-gray-800 p-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmailTemplateModal({ amc, onClose, onSend }: {
+  amc: AMC;
+  onClose: () => void;
+  onSend: (template: string, message: string) => void;
+}) {
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+
+  const emailTemplates = [
+    {
+      id: 'renewal_reminder',
+      name: 'AMC Renewal Reminder',
+      subject: 'AMC Renewal Due - {{amc_number}}',
+      placeholders: ['{{client_name}}', '{{amc_number}}', '{{end_date}}', '{{amount}}']
+    },
+    {
+      id: 'payment_reminder',
+      name: 'Payment Reminder',
+      subject: 'Payment Due for AMC - {{amc_number}}',
+      placeholders: ['{{client_name}}', '{{amc_number}}', '{{outstanding_amount}}', '{{due_date}}']
+    },
+    {
+      id: 'service_notification',
+      name: 'Service Notification',
+      subject: 'Scheduled Service - {{amc_number}}',
+      placeholders: ['{{client_name}}', '{{amc_number}}', '{{service_date}}', '{{location}}']
+    },
+  ];
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    const template = emailTemplates.find(t => t.id === templateId);
+    if (template) {
+      setEmailMessage(`Dear {{client_name}},\n\nThis is regarding your AMC contract {{amc_number}}.\n\n[Your message here]\n\nBest regards,\nElectrocom Team`);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl">
+        <div className="border-b dark:border-gray-800 p-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Send Email
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              To: {amc.client_name} - {amc.amc_number}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <AlertCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Email Template
+            </label>
+            <select
+              value={selectedTemplate}
+              onChange={(e) => handleTemplateChange(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              <option value="">Select a template</option>
+              {emailTemplates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedTemplate && (
+            <>
+              <div className="bg-sky-50 dark:bg-sky-900/20 rounded-lg p-4">
+                <p className="text-sm font-medium text-sky-900 dark:text-sky-300 mb-2">
+                  Available Placeholders:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {emailTemplates.find(t => t.id === selectedTemplate)?.placeholders.map((placeholder) => (
+                    <code
+                      key={placeholder}
+                      className="px-2 py-1 bg-white dark:bg-gray-800 border border-sky-200 dark:border-sky-800 rounded text-xs font-mono text-sky-700 dark:text-sky-400"
+                    >
+                      {placeholder}
+                    </code>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  rows={10}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  placeholder="Type your message here..."
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="border-t dark:border-gray-800 p-6 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => selectedTemplate && onSend(selectedTemplate, emailMessage)}
+            disabled={!selectedTemplate}
+            className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Mail className="h-4 w-4 inline mr-2" />
+            Send Email
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
