@@ -38,7 +38,7 @@ export default function TendersPage() {
         tender_id: tender.id,
         emd_amount: tender.estimated_value * 0.05,
         emd_refundable: tender.status !== "Awarded",
-        emd_collected: tender.status === "Awarded" || Math.random() > 0.7,
+        emd_collected: false,
         sd1_amount: tender.estimated_value * 0.02,
         sd1_refundable: false,
         sd2_amount: tender.estimated_value * 0.03,
@@ -96,6 +96,22 @@ export default function TendersPage() {
     if (confirm(`Are you sure you want to delete tender "${tender.name}"? This action cannot be undone.`)) {
       setTenders(tenders.filter((t) => t.id !== tender.id));
       setFinancials(financials.filter((f) => f.tender_id !== tender.id));
+    }
+  };
+
+  const handleMarkEMDCollected = (tenderId: number) => {
+    const tender = tenders.find((t) => t.id === tenderId);
+    if (!tender) return;
+
+    const collectionType = tender.status === "Lost" ? "SD1 (2%)" : "EMD (5%)";
+    if (confirm(`Mark ${collectionType} as collected for tender "${tender.name}"?`)) {
+      setFinancials(
+        financials.map((f) =>
+          f.tender_id === tenderId
+            ? { ...f, emd_collected: true, emd_collection_date: new Date().toISOString() }
+            : f
+        )
+      );
     }
   };
 
@@ -429,6 +445,15 @@ export default function TendersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-2">
+                            {(tender.status === "Closed" || tender.status === "Lost") && !financials?.emd_collected && (
+                              <button
+                                onClick={() => handleMarkEMDCollected(tender.id)}
+                                className="rounded bg-orange-50 px-2 py-1 text-xs font-medium text-orange-600 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
+                                title="Mark as Collected"
+                              >
+                                Mark Collected
+                              </button>
+                            )}
                             <Link
                               href={`/tenders/${tender.id}`}
                               className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
