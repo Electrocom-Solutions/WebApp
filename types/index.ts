@@ -74,13 +74,55 @@ export type Tender = {
   name: string;
   reference_number: string;
   description: string;
-  filed_date: string;
+  filed_date?: string;
   start_date: string;
   end_date: string;
   estimated_value: number;
-  status: "Filed" | "Awarded" | "Lost" | "Closed";
+  status: "Draft" | "Filed" | "Awarded" | "Lost" | "Closed";
   created_at: string;
   updated_at: string;
+};
+
+export type TenderFinancials = {
+  id: number;
+  tender_id: number;
+  emd_amount: number; // 5% of estimated value
+  emd_dd_number?: string;
+  emd_dd_date?: string;
+  emd_bank?: string;
+  emd_refundable: boolean;
+  emd_refund_date?: string;
+  sd1_amount: number; // 2% of estimated value
+  sd1_dd_number?: string;
+  sd1_dd_date?: string;
+  sd1_bank?: string;
+  sd1_refundable: boolean;
+  sd1_refund_date?: string;
+  sd2_amount: number; // 3% of estimated value
+  sd2_dd_number?: string;
+  sd2_dd_date?: string;
+  sd2_bank?: string;
+  sd2_refundable: boolean;
+  sd2_refund_date?: string;
+  notes?: string;
+};
+
+export type TenderDocument = {
+  id: number;
+  tender_id: number;
+  document_id: number; // Links to DocumentTemplate
+  document_title?: string;
+  attached_at: string;
+  attached_by: string;
+};
+
+export type TenderActivity = {
+  id: number;
+  tender_id: number;
+  type: "Status Changed" | "Document Attached" | "Reminder Sent" | "Financial Updated" | "Note Added" | "Refund Marked";
+  description: string;
+  performed_by: string;
+  timestamp: string;
 };
 
 export type Employee = {
