@@ -6,7 +6,7 @@ function computePayroll(params: {
   daysPresent: number;
   allowances?: { name: string; amount: number }[];
   deductions?: { name: string; amount: number }[];
-}): { grossAmount: number; totalDeductions: number; netAmount: number; computation: PayrollComputation } {
+}): { gross_amount: number; deductions: number; net_amount: number; computation_details: PayrollComputation } {
   const { baseSalary, workingDays, daysPresent, allowances = [], deductions = [] } = params;
 
   const perDayRate = Math.round(baseSalary / workingDays);
@@ -29,7 +29,12 @@ function computePayroll(params: {
     net_amount: netAmount,
   };
 
-  return { grossAmount, totalDeductions, netAmount, computation };
+  return { 
+    gross_amount: grossAmount, 
+    deductions: totalDeductions, 
+    net_amount: netAmount, 
+    computation_details: computation 
+  };
 }
 
 export const mockPayrollRecords: PayrollRecord[] = [
@@ -57,9 +62,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
         { name: "ESI", amount: 525 },
       ],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Paid",
     payment_date: "2025-11-01",
     payment_mode: "Bank Transfer",
@@ -92,9 +94,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
         { name: "ESI", amount: 420 },
       ],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Pending",
     notes: "October 2025 salary - 2 days absent",
     created_at: "2025-10-31T10:00:00Z",
@@ -126,9 +125,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
         { name: "Professional Tax", amount: 200 },
       ],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Pending",
     notes: "October 2025 salary",
     created_at: "2025-10-31T10:00:00Z",
@@ -153,9 +149,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
         { name: "Advance Deduction", amount: 2000 },
       ],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Hold",
     notes: "October 2025 - On hold due to advance adjustment",
     created_at: "2025-10-31T10:00:00Z",
@@ -178,9 +171,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
       daysPresent: 26,
       deductions: [],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Paid",
     payment_date: "2025-11-01",
     payment_mode: "Cash",
@@ -212,9 +202,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
         { name: "ESI", amount: 480 },
       ],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Pending",
     notes: "October 2025 salary - 1 day sick leave",
     created_at: "2025-10-31T10:00:00Z",
@@ -237,9 +224,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
       daysPresent: 20,
       deductions: [],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Pending",
     notes: "October 2025 - Multiple absences",
     created_at: "2025-10-31T10:00:00Z",
@@ -270,9 +254,6 @@ export const mockPayrollRecords: PayrollRecord[] = [
         { name: "ESI", amount: 570 },
       ],
     }),
-    get gross_amount() { return this.computation_details?.gross_amount || 0; },
-    get deductions() { return this.computation_details?.total_deductions || 0; },
-    get net_amount() { return this.computation_details?.net_amount || 0; },
     payment_status: "Paid",
     payment_date: "2025-11-01",
     payment_mode: "Bank Transfer",
