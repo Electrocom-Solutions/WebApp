@@ -304,3 +304,103 @@ export type PayrollComputation = {
   total_deductions: number;
   net_amount: number;
 };
+
+export type NotificationType = "Task" | "Bill" | "Tender" | "Payroll" | "System" | "Reminder";
+
+export type NotificationRecord = {
+  id: number;
+  recipient_id: number;
+  recipient_name?: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  is_read: boolean;
+  link?: string;
+  meta?: Record<string, any>;
+  created_at: string;
+  read_at?: string;
+};
+
+export type EmailTemplate = {
+  id: number;
+  name: string;
+  subject: string;
+  body: string;
+  placeholders: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type Resource = {
+  id: number;
+  name: string;
+  unit_of_measure: string;
+  stock_count?: number;
+  unit_price?: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectResource = {
+  id: number;
+  project_id: number;
+  resource_id: number;
+  resource_name?: string;
+  quantity_used: number;
+  unit_price: number;
+  total_cost: number;
+  used_date: string;
+  notes?: string;
+};
+
+export type ReportType = "AMC Billing Summary" | "Outstanding Receivables" | "Payroll Summary" | "Tasks by Employee" | "Tender Pipeline" | "Custom";
+
+export type Report = {
+  id: number;
+  name: string;
+  type: ReportType;
+  description?: string;
+  filters?: Record<string, any>;
+  data?: any[];
+  created_at: string;
+  created_by: string;
+};
+
+export type BankAccount = {
+  id: number;
+  bank_name: string;
+  account_number: string;
+  ifsc_code: string;
+  branch: string;
+  account_holder_name: string;
+  is_primary: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Holiday = {
+  id: number;
+  date: string;
+  name: string;
+  type: "National" | "Regional" | "Company";
+  is_optional: boolean;
+  created_at: string;
+};
+
+export type SystemSettings = {
+  company_name: string;
+  company_address: string;
+  company_phone: string;
+  company_email: string;
+  company_website?: string;
+  gst_number?: string;
+  pan_number?: string;
+  billing_currency: string;
+  timezone: string;
+  date_format: string;
+  reminder_days_before: number;
+  auto_backup_enabled: boolean;
+  email_notifications_enabled: boolean;
+  sms_notifications_enabled: boolean;
+};
