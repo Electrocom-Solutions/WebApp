@@ -25,6 +25,7 @@ import { mockTasks, getResourcesByTaskId, calculateTaskResourceCost, hasMissingU
 import { Task, TaskStatus, TaskResource } from "@/types";
 import { format, isToday, isThisWeek, isThisMonth, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { TaskDetailSlideOver } from "@/components/tasks/task-detail-slide-over";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 
 type PeriodFilter = "today" | "week" | "month" | "custom";
 
@@ -191,26 +192,18 @@ export default function TaskHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="mx-auto max-w-[1600px] space-y-6 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Task Hub</h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Owner Console — Review, edit, assign, and approve field tasks
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <button className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
-              <Plus className="h-4 w-4" />
-              Create Task
-            </button>
-          </div>
+    <DashboardLayout title="Task Hub" breadcrumbs={["Home", "Tasks"]}>
+      <div className="space-y-6">
+        {/* Header Actions */}
+        <div className="flex items-center justify-end gap-3">
+          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+          <button className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+            <Plus className="h-4 w-4" />
+            Create Task
+          </button>
         </div>
 
         {/* Period Controls */}
@@ -537,6 +530,6 @@ export default function TaskHubPage() {
           onReject={handleRejectTask}
         />
       )}
-    </div>
+    </DashboardLayout>
   );
 }

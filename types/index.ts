@@ -256,3 +256,51 @@ export type DocumentVersion = {
   uploaded_at: string;
   notes?: string;
 };
+
+export type PaymentMode = "Cash" | "Cheque" | "Bank Transfer" | "UPI";
+export type PaymentStatus = "Pending" | "Paid" | "Hold";
+
+export type PayrollRecord = {
+  id: number;
+  employee_id?: number;
+  contract_worker_id?: number;
+  employee_name: string;
+  employee_type: "Employee" | "Contract Worker";
+  period_start: string;
+  period_end: string;
+  working_days: number;
+  days_present: number;
+  days_absent: number;
+  base_salary: number;
+  gross_amount: number;
+  deductions: number;
+  deduction_details?: string;
+  net_amount: number;
+  payment_status: PaymentStatus;
+  payment_date?: string;
+  payment_mode?: PaymentMode;
+  bank_transaction_ref?: string;
+  notes?: string;
+  computation_details?: PayrollComputation;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PayrollComputation = {
+  base_salary: number;
+  working_days: number;
+  days_present: number;
+  per_day_rate: number;
+  earned_salary: number;
+  allowances?: {
+    name: string;
+    amount: number;
+  }[];
+  gross_amount: number;
+  deductions: {
+    name: string;
+    amount: number;
+  }[];
+  total_deductions: number;
+  net_amount: number;
+};
