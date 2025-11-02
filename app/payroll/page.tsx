@@ -112,11 +112,47 @@ export default function PayrollPage() {
   };
 
   const handleBulkGeneratePayslips = () => {
-    console.log("Generate payslips for:", selectedRecords);
+    if (selectedRecords.length === 0) return;
+    
+    alert(
+      `Payslip PDFs would be generated for ${selectedRecords.length} employee(s).\n\n` +
+      `In production, this would:\n` +
+      `- Generate PDF payslips using the Document Management template\n` +
+      `- Download as ZIP file or individual PDFs\n` +
+      `- Email payslips to employees (optional)\n\n` +
+      `(This is a frontend-only demo - PDF generation will be implemented when Django API is integrated)`
+    );
   };
 
   const handleBulkMarkPaid = () => {
-    console.log("Mark paid for:", selectedRecords);
+    if (selectedRecords.length === 0) return;
+
+    const paymentDate = new Date().toISOString().split("T")[0];
+    const confirmed = confirm(
+      `Mark ${selectedRecords.length} payroll record(s) as PAID?\n\n` +
+      `Payment Date: ${paymentDate}\n` +
+      `Payment Mode: Bank Transfer\n\n` +
+      `This action will update all selected records.`
+    );
+
+    if (!confirmed) return;
+
+    setPayrollRecords((prev) =>
+      prev.map((record) =>
+        selectedRecords.includes(record.id)
+          ? {
+              ...record,
+              payment_status: "Paid" as PaymentStatus,
+              payment_mode: "Bank Transfer",
+              payment_date: paymentDate,
+              bank_transaction_ref: `BULK-${Date.now()}-${record.id}`,
+            }
+          : record
+      )
+    );
+
+    setSelectedRecords([]);
+    alert(`Successfully marked ${selectedRecords.length} payroll record(s) as paid!`);
   };
 
   const getStatusColor = (status: PaymentStatus) => {
