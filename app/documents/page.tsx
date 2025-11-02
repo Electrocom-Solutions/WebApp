@@ -526,8 +526,8 @@ export default function DocumentsPage() {
                         onChange={() => toggleTemplateSelection(template.id)}
                         className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500"
                       />
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-sky-100">
-                        <FileText className="h-6 w-6 text-sky-600" />
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
+                        <FileText className="h-6 w-6 text-gray-500" />
                       </div>
                     </div>
                     <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">

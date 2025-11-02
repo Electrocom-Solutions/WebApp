@@ -52,11 +52,12 @@ electrocom-console/
 
 ### Core Modules (Implemented)
 1. **Dashboard**: Overview cards, quick actions, AMC expiry alerts, recent activity
-2. **Clients**: Client master with CRUD interface, searchable table
-3. **AMCs**: AMC management with status tracking, billing cycle support
-4. **Tenders**: Tender pipeline with EMD tracking
-5. **Projects**: Project listing with status badges
-6. **Documents, Tasks, Employees, Contract Workers, Attendance, Payroll, Resources, Task Resources, Reports, Notifications, Email Templates, Bank Accounts, Holiday Calendar, Settings**: Placeholder pages ready for implementation
+2. **Documents**: Complete document management with upload, version control, preview, bulk operations, grid/table views
+3. **Clients**: Client master with CRUD interface, searchable table
+4. **AMCs**: AMC management with status tracking, billing cycle support
+5. **Tenders**: Tender pipeline with EMD tracking
+6. **Projects**: Project listing with status badges
+7. **Tasks, Employees, Contract Workers, Attendance, Payroll, Resources, Task Resources, Reports, Notifications, Email Templates, Bank Accounts, Holiday Calendar, Settings**: Placeholder pages ready for implementation
 
 ### UI Components
 - Button (multiple variants and sizes)
@@ -98,10 +99,13 @@ The frontend is designed to match the database schema provided in the requiremen
 - **Start Production**: `npm start`
 
 ## Design Tokens
-- **Primary Accent**: sky-500
-- **Card Style**: rounded-lg with soft shadows
-- **Background**: neutral gray (light mode: white, dark mode: gray-900)
+- **Primary Accent**: sky-500 (for interactive elements, buttons, links)
+- **Card Style**: White background with `rounded-lg border border-gray-200 shadow-sm`, hover effect with `hover:shadow-md`
+- **Icon Containers**: Gray background `bg-gray-50 border border-gray-200` with gray icons `text-gray-500`
+- **Category Badges**: `bg-gray-100 text-gray-700` with rounded-full or rounded styling
+- **Background**: Neutral gray (light mode: white cards on gray background, dark mode: gray-900)
 - **Typography**: System fonts with clear hierarchy
+- **Color Philosophy**: Clean, minimal aesthetic with white backgrounds, gray neutrals, and sky-500 accent only for interactive elements
 
 ## Notes
 - All forms and data structures match the provided database schema
