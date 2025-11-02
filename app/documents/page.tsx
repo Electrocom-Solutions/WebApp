@@ -392,8 +392,8 @@ export default function DocumentsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Document Management</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Document Management</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Manage templates for AMCs, Tenders, Invoices, and more
             </p>
           </div>
@@ -407,29 +407,29 @@ export default function DocumentsPage() {
         </div>
 
         {showBulkActions && (
-          <div className="flex items-center justify-between rounded-lg bg-sky-50 p-4">
-            <p className="text-sm font-medium text-gray-900">
+          <div className="flex items-center justify-between rounded-lg bg-sky-50 p-4 dark:bg-sky-900/20">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
               {selectedTemplates.size} template{selectedTemplates.size > 1 ? 's' : ''}{' '}
               selected
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleBulkPrint}
-                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               >
                 <Printer className="h-4 w-4" />
                 Print Selected
               </button>
               <button
                 onClick={handleBulkDownload}
-                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               >
                 <Download className="h-4 w-4" />
                 Download Selected
               </button>
               <button
                 onClick={handleBulkTag}
-                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               >
                 <Tag className="h-4 w-4" />
                 Tag Selected
@@ -440,22 +440,22 @@ export default function DocumentsPage() {
 
         <div className="flex items-center gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Search templates by title, category, or tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
+            <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
@@ -465,13 +465,13 @@ export default function DocumentsPage() {
             </select>
           </div>
 
-          <div className="flex rounded-lg border border-gray-300">
+          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 ${
                 viewMode === 'grid'
                   ? 'bg-sky-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <Grid3x3 className="h-4 w-4" />
@@ -481,7 +481,7 @@ export default function DocumentsPage() {
               className={`p-2 ${
                 viewMode === 'table'
                   ? 'bg-sky-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <List className="h-4 w-4" />
@@ -490,10 +490,10 @@ export default function DocumentsPage() {
         </div>
 
         {filteredTemplates.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No templates found</h3>
-            <p className="mt-2 text-sm text-gray-500">
+          <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center dark:border-gray-700">
+            <FileText className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No templates found</h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Get started by uploading your first template
             </p>
             <button
