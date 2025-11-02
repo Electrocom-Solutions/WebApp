@@ -1,0 +1,166 @@
+"use client";
+
+import { Bell, Search, Moon, Sun, User, Settings, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
+
+export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: string[] }) {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount] = useState(3);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("theme") as "light" | "dark";
+    if (stored) {
+      setTheme(stored);
+      document.documentElement.classList.toggle("dark", stored === "dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-30 border-b bg-white dark:bg-gray-900">
+      <div className="flex h-16 items-center justify-between px-6">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-semibold">{title}</h1>
+          {breadcrumbs && breadcrumbs.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              {breadcrumbs.map((crumb, index) => (
+                <span key={index} className="flex items-center gap-2">
+                  {index > 0 && <span>/</span>}
+                  <span>{crumb}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="relative hidden md:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="w-64 pl-9"
+            />
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          >
+            {theme === "light" ? (
+              <Moon className="h-5 w-5" />
+            ) : (
+              <Sun className="h-5 w-5" />
+            )}
+          </Button>
+
+          <div className="relative" ref={notificationRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </Button>
+
+            {showNotifications && (
+              <div className="absolute right-0 top-12 w-80 rounded-lg border bg-white shadow-lg dark:bg-gray-900">
+                <div className="border-b p-4">
+                  <h3 className="font-semibold">Notifications</h3>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <p className="text-sm font-medium">AMC Expiry Alert</p>
+                    <p className="text-xs text-gray-500">ABC Power Ltd AMC expires in 7 days</p>
+                    <p className="mt-1 text-xs text-gray-400">2 hours ago</p>
+                  </div>
+                  <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <p className="text-sm font-medium">New Task Assigned</p>
+                    <p className="text-xs text-gray-500">Panel installation at Site B</p>
+                    <p className="mt-1 text-xs text-gray-400">5 hours ago</p>
+                  </div>
+                  <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <p className="text-sm font-medium">Tender Deadline</p>
+                    <p className="text-xs text-gray-500">Tender TND/ER/001/2025 ends tomorrow</p>
+                    <p className="mt-1 text-xs text-gray-400">1 day ago</p>
+                  </div>
+                </div>
+                <div className="border-t p-2">
+                  <button className="w-full py-2 text-center text-sm text-sky-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    View All Notifications
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-400"
+            >
+              <User className="h-5 w-5" />
+            </button>
+
+            {showUserMenu && (
+              <div className="absolute right-0 top-12 w-48 rounded-lg border bg-white shadow-lg dark:bg-gray-900">
+                <div className="border-b p-3">
+                  <p className="font-medium">Admin User</p>
+                  <p className="text-xs text-gray-500">admin@electrocom.com</p>
+                </div>
+                <div className="p-2">
+                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </button>
+                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </button>
+                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
