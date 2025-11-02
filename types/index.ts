@@ -161,18 +161,64 @@ export type Project = {
   updated_at: string;
 };
 
+export type TaskStatus = "Open" | "In Progress" | "Completed" | "Approved" | "Rejected";
+export type TaskPriority = "Low" | "Medium" | "High" | "Urgent";
+
 export type Task = {
   id: number;
   employee_id: number;
-  project_id: number;
+  employee_name?: string; // For display
+  client_id?: number;
+  client_name?: string; // For display
+  project_id?: number;
+  project_name?: string; // For display
   description: string;
   date: string;
   location: string;
   time_taken_minutes: number;
-  cost_incurred: number;
-  status: "Open" | "In Progress" | "Completed" | "Canceled";
+  estimated_time_minutes?: number;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assigned_by?: string; // Owner who assigned
+  approved_by?: string; // Owner who approved
+  approved_at?: string;
+  internal_notes?: string; // Owner notes
+  is_new?: boolean; // Unread flag for owner
   created_at: string;
   updated_at: string;
+};
+
+export type TaskResource = {
+  id: number;
+  task_id: number;
+  resource_name: string;
+  quantity: number;
+  unit: string; // uom (e.g., "kg", "pcs", "hrs")
+  unit_cost?: number; // Owner-entered cost per unit
+  total_cost?: number; // Calculated: unit_cost * quantity
+  notes?: string;
+  created_at: string;
+};
+
+export type TaskAttachment = {
+  id: number;
+  task_id: number;
+  file_name: string;
+  file_url: string;
+  file_type: "image" | "pdf" | "doc" | "other";
+  file_size: number; // in bytes
+  uploaded_by: string; // Employee or Owner
+  uploaded_at: string;
+  notes?: string;
+};
+
+export type TaskActivity = {
+  id: number;
+  task_id: number;
+  type: "Created" | "Status Changed" | "Assigned" | "Edited" | "Approved" | "Rejected" | "Resource Updated" | "Note Added";
+  description: string;
+  performed_by: string;
+  timestamp: string;
 };
 
 export type Notification = {
