@@ -111,3 +111,28 @@ export type Notification = {
   is_read: boolean;
   created_at: string;
 };
+
+export type DocumentTemplate = {
+  id: number;
+  title: string;
+  category: "AMC" | "Tender" | "Invoice" | "Contract" | "Report" | "Other";
+  tags: string[];
+  latest_version_number: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentVersion = {
+  id: number;
+  template_id: number;
+  version_number: number;
+  file_name: string;
+  file_type: "pdf" | "docx";
+  file_size: number;
+  file_url: string;
+  is_published: boolean;
+  uploaded_by: string;
+  uploaded_at: string;
+  notes?: string;
+};
