@@ -16,8 +16,10 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { mockPayrollRecords } from "@/lib/mock-data/payroll";
-import { PayrollRecord, PaymentStatus } from "@/types";
+import { PayrollRecord, PaymentStatus, PaymentMode } from "@/types";
 import { format } from "date-fns";
+import { PayslipModal } from "@/components/payroll/payslip-modal";
+import { MarkPaidModal } from "@/components/payroll/mark-paid-modal";
 
 export default function PayrollPage() {
   const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>(mockPayrollRecords);
@@ -69,6 +71,24 @@ export default function PayrollPage() {
   const handleMarkPaid = (record: PayrollRecord) => {
     setSelectedPayroll(record);
     setShowMarkPaidModal(true);
+  };
+
+  const handleMarkPaidSubmit = (paymentMode: PaymentMode, bankRef: string, paymentDate: string) => {
+    if (!selectedPayroll) return;
+
+    setPayrollRecords((prev) =>
+      prev.map((record) =>
+        record.id === selectedPayroll.id
+          ? {
+              ...record,
+              payment_status: "Paid" as PaymentStatus,
+              payment_mode: paymentMode,
+              bank_transaction_ref: bankRef,
+              payment_date: paymentDate,
+            }
+          : record
+      )
+    );
   };
 
   const handleRecalculate = (recordId: number) => {
@@ -370,7 +390,24 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      {/* Modals will be added next */}
+      {/* Payslip Modal */}
+      {selectedPayroll && (
+        <PayslipModal
+          payroll={selectedPayroll}
+          isOpen={showPayslipModal}
+          onClose={() => setShowPayslipModal(false)}
+        />
+      )}
+
+      {/* Mark Paid Modal */}
+      {selectedPayroll && (
+        <MarkPaidModal
+          payroll={selectedPayroll}
+          isOpen={showMarkPaidModal}
+          onClose={() => setShowMarkPaidModal(false)}
+          onSubmit={handleMarkPaidSubmit}
+        />
+      )}
     </DashboardLayout>
   );
 }
