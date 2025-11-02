@@ -30,6 +30,14 @@ type PeriodFilter = "today" | "week" | "month" | "custom";
 
 export default function TaskHubPage() {
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [taskResources, setTaskResources] = useState<Record<number, TaskResource[]>>(() => {
+    // Initialize resources from mock data, indexed by task_id
+    const resourcesMap: Record<number, TaskResource[]> = {};
+    mockTasks.forEach((task) => {
+      resourcesMap[task.id] = getResourcesByTaskId(task.id);
+    });
+    return resourcesMap;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
@@ -37,6 +45,23 @@ export default function TaskHubPage() {
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+
+  // Helper to get resources for a task from state
+  const getTaskResources = (taskId: number): TaskResource[] => {
+    return taskResources[taskId] || [];
+  };
+
+  // Helper to calculate resource cost from state (not mock data)
+  const calculateTaskResourceCostFromState = (taskId: number): number => {
+    const resources = getTaskResources(taskId);
+    return resources.reduce((sum, r) => sum + (r.total_cost || 0), 0);
+  };
+
+  // Helper to check missing unit costs from state
+  const hasMissingUnitCostsFromState = (taskId: number): boolean => {
+    const resources = getTaskResources(taskId);
+    return resources.some((r) => !r.unit_cost);
+  };
 
   const openTaskDetail = (task: Task) => {
     setSelectedTask(task);
@@ -49,11 +74,15 @@ export default function TaskHubPage() {
   };
 
   const handleSaveTask = (updatedTask: Task, resources: TaskResource[]) => {
+    // Update task
     setTasks((prev) =>
       prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
     );
-    // In real app, would also update resources via API
-    console.log("Saved task:", updatedTask, "with resources:", resources);
+    // **FIX: Persist resources to state**
+    setTaskResources((prev) => ({
+      ...prev,
+      [updatedTask.id]: resources,
+    }));
   };
 
   const handleApproveTask = (task: Task) => {
@@ -125,10 +154,10 @@ export default function TaskHubPage() {
     const pending = filteredTasks.filter((t) => t.status === "Completed" && !t.approved_by).length;
     const completed = filteredTasks.filter((t) => t.status === "Approved").length;
     const totalTime = filteredTasks.reduce((sum, t) => sum + t.time_taken_minutes, 0);
-    const totalResourceCost = filteredTasks.reduce((sum, t) => sum + calculateTaskResourceCost(t.id), 0);
+    const totalResourceCost = filteredTasks.reduce((sum, t) => sum + calculateTaskResourceCostFromState(t.id), 0);
 
     return { total, pending, completed, totalTime, totalResourceCost };
-  }, [filteredTasks]);
+  }, [filteredTasks, taskResources]);
 
   const toggleTaskExpand = (taskId: number) => {
     setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
@@ -372,8 +401,8 @@ export default function TaskHubPage() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredTasks.map((task) => {
-                  const resourceCost = calculateTaskResourceCost(task.id);
-                  const missingCosts = hasMissingUnitCosts(task.id);
+                  const resourceCost = calculateTaskResourceCostFromState(task.id);
+                  const missingCosts = hasMissingUnitCostsFromState(task.id);
                   const isExpanded = expandedTaskId === task.id;
 
                   return (
@@ -500,6 +529,7 @@ export default function TaskHubPage() {
       {selectedTask && (
         <TaskDetailSlideOver
           task={selectedTask}
+          resources={getTaskResources(selectedTask.id)}
           isOpen={isSlideOverOpen}
           onClose={closeTaskDetail}
           onSave={handleSaveTask}

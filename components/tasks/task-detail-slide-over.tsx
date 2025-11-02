@@ -30,6 +30,7 @@ import { format } from "date-fns";
 
 interface TaskDetailSlideOverProps {
   task: Task;
+  resources: TaskResource[];
   isOpen: boolean;
   onClose: () => void;
   onSave?: (task: Task, resources: TaskResource[]) => void;
@@ -39,6 +40,7 @@ interface TaskDetailSlideOverProps {
 
 export function TaskDetailSlideOver({
   task,
+  resources: initialResources,
   isOpen,
   onClose,
   onSave,
@@ -53,13 +55,13 @@ export function TaskDetailSlideOver({
 
   useEffect(() => {
     if (isOpen) {
-      setResources(getResourcesByTaskId(task.id));
+      setResources(initialResources);
       setAttachments(getAttachmentsByTaskId(task.id));
       setActivities(getActivitiesByTaskId(task.id));
       setInternalNote(task.internal_notes || "");
       setHasChanges(false);
     }
-  }, [task.id, isOpen]);
+  }, [task.id, isOpen, initialResources]);
 
   const updateResourceUnitCost = (resourceId: number, unitCost: number | null) => {
     setResources((prev) =>
