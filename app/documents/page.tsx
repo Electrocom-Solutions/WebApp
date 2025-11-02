@@ -514,7 +514,7 @@ export default function DocumentsPage() {
               return (
                 <div
                   key={template.id}
-                  className={`rounded-lg border bg-white p-6 shadow-sm transition-all hover:shadow-md ${
+                  className={`rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 ${
                     isSelected ? 'ring-2 ring-sky-500' : ''
                   }`}
                 >
@@ -524,40 +524,40 @@ export default function DocumentsPage() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleTemplateSelection(template.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500"
+                        className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500 dark:border-gray-600"
                       />
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
-                        <FileText className="h-6 w-6 text-gray-500" />
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700">
+                        <FileText className="h-6 w-6 text-gray-500 dark:text-gray-400" />
                       </div>
                     </div>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                       {template.category}
                     </span>
                   </div>
 
-                  <h3 className="mb-2 font-semibold text-gray-900">{template.title}</h3>
+                  <h3 className="mb-2 font-semibold text-gray-900 dark:text-white">{template.title}</h3>
 
                   <div className="mb-4 flex flex-wrap gap-1">
                     {template.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                        className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                       >
                         #{tag}
                       </span>
                     ))}
                   </div>
 
-                  <div className="mb-4 space-y-1 text-sm text-gray-500">
+                  <div className="mb-4 space-y-1 text-sm text-gray-500 dark:text-gray-400">
                     <p>Latest: v{template.latest_version_number}</p>
                     <p>By: {template.created_by}</p>
                     <p>Updated: {format(new Date(template.updated_at), 'MMM dd, yyyy')}</p>
                   </div>
 
-                  <div className="flex items-center justify-between border-t pt-4">
+                  <div className="flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
                     <button
                       onClick={() => toggleVersionExpand(template.id)}
-                      className="flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
+                      className="flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
                     >
                       Versions
                       {expandedVersions[template.id] ? (
@@ -570,21 +570,21 @@ export default function DocumentsPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handlePreview(template.id)}
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600"
+                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600 dark:hover:bg-gray-700 dark:hover:text-sky-400"
                         title="Preview"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDownload(template.id)}
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600"
+                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600 dark:hover:bg-gray-700 dark:hover:text-sky-400"
                         title="Download"
                       >
                         <Download className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(template.id)}
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600"
+                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-700 dark:hover:text-red-400"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -593,26 +593,26 @@ export default function DocumentsPage() {
                   </div>
 
                   {expandedVersions[template.id] && (
-                    <div className="mt-4 space-y-2 border-t pt-4">
+                    <div className="mt-4 space-y-2 border-t border-gray-200 pt-4 dark:border-gray-700">
                       {templateVersions.map((version) => (
                         <div
                           key={version.id}
-                          className="flex items-center justify-between rounded bg-gray-50 p-2 text-sm"
+                          className="flex items-center justify-between rounded bg-gray-50 p-2 text-sm dark:bg-gray-700"
                         >
                           <div>
-                            <span className="font-medium">v{version.version_number}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">v{version.version_number}</span>
                             {version.is_published && (
-                              <span className="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">
+                              <span className="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">
                                 Published
                               </span>
                             )}
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
                               {format(new Date(version.uploaded_at), 'MMM dd, yyyy')}
                             </p>
                           </div>
                           <button
                             onClick={() => handleViewVersions(template)}
-                            className="text-xs text-sky-600 hover:text-sky-700"
+                            className="text-xs text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
                           >
                             View All
                           </button>
@@ -625,9 +625,9 @@ export default function DocumentsPage() {
             })}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th className="px-6 py-3 text-left">
                     <input
@@ -637,30 +637,30 @@ export default function DocumentsPage() {
                         filteredTemplates.length > 0
                       }
                       onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500"
+                      className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500 dark:border-gray-600"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Title
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Category
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Latest Version
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Uploaded By
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Created At
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
                 {filteredTemplates.map((template) => {
                   const isSelected = selectedTemplates.has(template.id);
                   const templateVersions = versions[template.id] || [];
@@ -669,8 +669,8 @@ export default function DocumentsPage() {
                     <>
                       <tr
                         key={template.id}
-                        className={`hover:bg-gray-50 ${
-                          isSelected ? 'bg-sky-50' : ''
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          isSelected ? 'bg-sky-50 dark:bg-sky-900/20' : ''
                         }`}
                       >
                         <td className="px-6 py-4">
@@ -678,17 +678,17 @@ export default function DocumentsPage() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleTemplateSelection(template.id)}
-                            className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500"
+                            className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500 dark:border-gray-600"
                           />
                         </td>
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-medium text-gray-900">{template.title}</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{template.title}</p>
                             <div className="mt-1 flex flex-wrap gap-1">
                               {template.tags.slice(0, 3).map((tag) => (
                                 <span
                                   key={tag}
-                                  className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                                  className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                                 >
                                   #{tag}
                                 </span>
@@ -697,14 +697,14 @@ export default function DocumentsPage() {
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">
-                          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                             {template.category}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">
                           <button
                             onClick={() => toggleVersionExpand(template.id)}
-                            className="flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
+                            className="flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
                           >
                             v{template.latest_version_number}
                             {expandedVersions[template.id] ? (
@@ -714,31 +714,31 @@ export default function DocumentsPage() {
                             )}
                           </button>
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                           {template.created_by}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                           {format(new Date(template.created_at), 'MMM dd, yyyy')}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => handlePreview(template.id)}
-                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600"
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600 dark:hover:bg-gray-700 dark:hover:text-sky-400"
                               title="Preview"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDownload(template.id)}
-                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600"
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-sky-600 dark:hover:bg-gray-700 dark:hover:text-sky-400"
                               title="Download"
                             >
                               <Download className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(template.id)}
-                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600"
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-700 dark:hover:text-red-400"
                               title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -748,29 +748,29 @@ export default function DocumentsPage() {
                       </tr>
                       {expandedVersions[template.id] && (
                         <tr>
-                          <td colSpan={7} className="bg-gray-50 px-6 py-4">
+                          <td colSpan={7} className="bg-gray-50 px-6 py-4 dark:bg-gray-900">
                             <div className="space-y-2">
-                              <p className="text-sm font-medium text-gray-700">
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Version History
                               </p>
                               {templateVersions.map((version) => (
                                 <div
                                   key={version.id}
-                                  className="flex items-center justify-between rounded bg-white p-3 text-sm"
+                                  className="flex items-center justify-between rounded bg-white p-3 text-sm dark:bg-gray-800"
                                 >
                                   <div className="flex items-center gap-4">
-                                    <span className="font-medium text-gray-900">
+                                    <span className="font-medium text-gray-900 dark:text-white">
                                       v{version.version_number}
                                     </span>
                                     {version.is_published && (
-                                      <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                      <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
                                         Published
                                       </span>
                                     )}
-                                    <span className="text-gray-600">
+                                    <span className="text-gray-600 dark:text-gray-400">
                                       {version.file_name}
                                     </span>
-                                    <span className="text-gray-500">
+                                    <span className="text-gray-500 dark:text-gray-500">
                                       {format(
                                         new Date(version.uploaded_at),
                                         'MMM dd, yyyy HH:mm'

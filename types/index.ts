@@ -1,13 +1,33 @@
 export type Client = {
   id: number;
   name: string;
+  business_name?: string;
   address: string;
   city: string;
   state: string;
   pin_code: string;
   country: string;
+  primary_contact_name: string;
+  primary_contact_email: string;
+  primary_contact_phone: string;
+  secondary_contact?: string;
+  notes?: string;
+  tags: string[];
+  amc_count: number;
+  open_projects: number;
+  outstanding_amount: number;
+  last_activity: string;
   created_at: string;
   updated_at: string;
+};
+
+export type ClientActivity = {
+  id: number;
+  client_id: number;
+  type: "Task Created" | "Bill Generated" | "Email Sent" | "Project Started" | "AMC Created" | "Payment Received";
+  description: string;
+  performed_by: string;
+  timestamp: string;
 };
 
 export type AMC = {

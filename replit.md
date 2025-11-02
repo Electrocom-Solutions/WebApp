@@ -52,8 +52,14 @@ electrocom-console/
 
 ### Core Modules (Implemented)
 1. **Dashboard**: Overview cards, quick actions, AMC expiry alerts, recent activity
-2. **Documents**: Complete document management with upload, version control, preview, bulk operations, grid/table views
-3. **Clients**: Client master with CRUD interface, searchable table
+2. **Documents**: Complete document management with upload, version control, preview, bulk operations, grid/table views, full state management
+3. **Clients**: Comprehensive client management with:
+   - Full CRUD operations with slide-over form modal
+   - Search and multiple filters (city, state, AMC status, tags)
+   - Grid and table view toggle
+   - Bulk actions (Export CSV, Send Email, Delete)
+   - Quick stats dashboard
+   - Full state management and validation
 4. **AMCs**: AMC management with status tracking, billing cycle support
 5. **Tenders**: Tender pipeline with EMD tracking
 6. **Projects**: Project listing with status badges
@@ -99,13 +105,22 @@ The frontend is designed to match the database schema provided in the requiremen
 - **Start Production**: `npm start`
 
 ## Design Tokens
+- **Theme**: Dark mode is default
 - **Primary Accent**: sky-500 (for interactive elements, buttons, links)
-- **Card Style**: White background with `rounded-lg border border-gray-200 shadow-sm`, hover effect with `hover:shadow-md`
-- **Icon Containers**: Gray background `bg-gray-50 border border-gray-200` with gray icons `text-gray-500`
-- **Category Badges**: `bg-gray-100 text-gray-700` with rounded-full or rounded styling
-- **Background**: Neutral gray (light mode: white cards on gray background, dark mode: gray-900)
-- **Typography**: System fonts with clear hierarchy
-- **Color Philosophy**: Clean, minimal aesthetic with white backgrounds, gray neutrals, and sky-500 accent only for interactive elements
+- **Card Style**: 
+  - Light: White background with `rounded-lg border border-gray-200 shadow-sm`, hover effect with `hover:shadow-md`
+  - Dark: `dark:bg-gray-800 dark:border-gray-700` with `dark:hover:shadow-md`
+- **Icon Containers**: 
+  - Light: `bg-gray-50 border border-gray-200` with `text-gray-500`
+  - Dark: `dark:bg-gray-700 dark:border-gray-700` with `dark:text-gray-400`
+- **Category Badges**: 
+  - Light: `bg-gray-100 text-gray-700`
+  - Dark: `dark:bg-gray-700 dark:text-gray-300`
+- **Background**: 
+  - Light: white cards on gray background
+  - Dark: gray-800 cards on gray-900 background (default)
+- **Typography**: System fonts with clear hierarchy, use `dark:text-white` and `dark:text-gray-400` variants
+- **Color Philosophy**: Clean, minimal aesthetic with proper dark theme support across all components. All new pages MUST include dark theme variants using Tailwind's dark: prefix
 
 ## Notes
 - All forms and data structures match the provided database schema
