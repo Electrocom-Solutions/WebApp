@@ -92,6 +92,8 @@ export type TenderFinancials = {
   emd_bank?: string;
   emd_refundable: boolean;
   emd_refund_date?: string;
+  emd_collected?: boolean;
+  emd_collection_date?: string;
   sd1_amount: number; // 2% of estimated value
   sd1_dd_number?: string;
   sd1_dd_date?: string;

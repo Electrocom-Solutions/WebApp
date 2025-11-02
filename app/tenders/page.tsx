@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Eye,
   Edit,
-  Paperclip,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { Tender, TenderFinancials } from "@/types";
@@ -24,25 +24,31 @@ export default function TendersPage() {
   const [tenders, setTenders] = useState<Tender[]>(initialTenders);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [emdFilter, setEmdFilter] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [isTenderModalOpen, setIsTenderModalOpen] = useState(false);
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
+  const [financials, setFinancials] = useState<TenderFinancials[]>([]);
 
   // Calculate financials dynamically
-  const mockFinancials: TenderFinancials[] = useMemo(
-    () =>
-      tenders.map((tender) => ({
+  const mockFinancials: TenderFinancials[] = useMemo(() => {
+    if (financials.length === 0) {
+      const initialFinancials = tenders.map((tender) => ({
         id: tender.id,
         tender_id: tender.id,
-        emd_amount: tender.estimated_value * 0.05, // 5%
+        emd_amount: tender.estimated_value * 0.05,
         emd_refundable: tender.status !== "Awarded",
-        sd1_amount: tender.estimated_value * 0.02, // 2%
+        emd_collected: tender.status === "Awarded" || Math.random() > 0.7,
+        sd1_amount: tender.estimated_value * 0.02,
         sd1_refundable: false,
-        sd2_amount: tender.estimated_value * 0.03, // 3%
+        sd2_amount: tender.estimated_value * 0.03,
         sd2_refundable: false,
-      })),
-    [tenders]
-  );
+      }));
+      setFinancials(initialFinancials);
+      return initialFinancials;
+    }
+    return financials;
+  }, [tenders, financials]);
 
   // CRUD handlers
   const handleNewTender = () => {
@@ -86,6 +92,13 @@ export default function TendersPage() {
     }
   };
 
+  const handleDeleteTender = (tender: Tender) => {
+    if (confirm(`Are you sure you want to delete tender "${tender.name}"? This action cannot be undone.`)) {
+      setTenders(tenders.filter((t) => t.id !== tender.id));
+      setFinancials(financials.filter((f) => f.tender_id !== tender.id));
+    }
+  };
+
   // Search and filter
   const filteredTenders = useMemo(() => {
     return tenders.filter((tender) => {
@@ -96,12 +109,29 @@ export default function TendersPage() {
 
       const matchesStatus = statusFilter === "All" || tender.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const tenderFinancials = mockFinancials.find((f) => f.tender_id === tender.id);
+      const needsEMDCollection = (tender.status === "Closed" || tender.status === "Lost") && !tenderFinancials?.emd_collected;
+      const matchesEMD = !emdFilter || needsEMDCollection;
+
+      return matchesSearch && matchesStatus && matchesEMD;
     });
-  }, [tenders, searchQuery, statusFilter]);
+  }, [tenders, searchQuery, statusFilter, emdFilter, mockFinancials]);
 
   // Stats
   const stats = useMemo(() => {
+    const pendingEMDs = tenders.filter((t) => {
+      const tenderFinancials = mockFinancials.find((f) => f.tender_id === t.id);
+      return (t.status === "Closed" || t.status === "Lost") && !tenderFinancials?.emd_collected;
+    });
+
+    const pendingEMDAmount = pendingEMDs.reduce((sum, t) => {
+      const tenderFinancials = mockFinancials.find((f) => f.tender_id === t.id);
+      if (t.status === "Lost") {
+        return sum + (tenderFinancials?.sd1_amount || 0);
+      }
+      return sum + (tenderFinancials?.emd_amount || 0);
+    }, 0);
+
     return {
       total: tenders.length,
       draft: tenders.filter((t) => t.status === "Draft").length,
@@ -112,8 +142,10 @@ export default function TendersPage() {
       awardedValue: tenders
         .filter((t) => t.status === "Awarded")
         .reduce((sum, t) => sum + t.estimated_value, 0),
+      pendingEMDCount: pendingEMDs.length,
+      pendingEMDAmount: pendingEMDAmount,
     };
-  }, [tenders]);
+  }, [tenders, mockFinancials]);
 
   const getStatusBadgeClass = (status: Tender["status"]) => {
     switch (status) {
@@ -177,7 +209,7 @@ export default function TendersPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
             <div className="flex items-center justify-between">
               <div>
@@ -230,6 +262,21 @@ export default function TendersPage() {
               </div>
             </div>
           </div>
+
+          <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending EMDs</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{stats.pendingEMDCount}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  ₹{(stats.pendingEMDAmount / 100000).toFixed(1)}L
+                </p>
+              </div>
+              <div className="rounded-full bg-orange-100 p-3 dark:bg-orange-900/30">
+                <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filters and View Toggle */}
@@ -260,6 +307,19 @@ export default function TendersPage() {
               <option value="Lost">Lost</option>
               <option value="Closed">Closed</option>
             </select>
+
+            {/* EMD Filter */}
+            <button
+              onClick={() => setEmdFilter(!emdFilter)}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                emdFilter
+                  ? "bg-orange-500 text-white"
+                  : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              }`}
+            >
+              <AlertCircle className="h-4 w-4 inline mr-2" />
+              Pending EMDs
+            </button>
           </div>
 
           {/* View Toggle */}
@@ -384,10 +444,11 @@ export default function TendersPage() {
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
-                              className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                              title="Attach Documents"
+                              onClick={() => handleDeleteTender(tender)}
+                              className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-red-400"
+                              title="Delete Tender"
                             >
-                              <Paperclip className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
@@ -453,12 +514,14 @@ export default function TendersPage() {
                         </div>
 
                         <div className="mt-3 flex gap-2">
-                          <button
-                            className="flex-1 rounded bg-sky-50 px-2 py-1 text-xs font-medium text-sky-600 hover:bg-sky-100 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/50"
-                            title="View Details"
-                          >
-                            View
-                          </button>
+                          <Link href={`/tenders/${tender.id}`} className="flex-1">
+                            <button
+                              className="w-full rounded bg-sky-50 px-2 py-1 text-xs font-medium text-sky-600 hover:bg-sky-100 dark:bg-sky-900/30 dark:text-sky-400 dark:hover:bg-sky-900/50"
+                              title="View Details"
+                            >
+                              View
+                            </button>
+                          </Link>
                           <button
                             onClick={() => handleEditTender(tender)}
                             className="flex-1 rounded bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
