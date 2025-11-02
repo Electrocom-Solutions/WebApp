@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { format, differenceInDays, addDays, addMonths, addYears } from 'date-fns';
 import Link from 'next/link';
+import { AMCFormModal } from '@/components/amcs/amc-form-modal';
 
 const mockClients: Client[] = [
   {
@@ -174,6 +175,8 @@ export default function AMCsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [billingCycleFilter, setBillingCycleFilter] = useState('all');
   const [expiryFilter, setExpiryFilter] = useState<number | null>(null);
+  const [isAMCModalOpen, setIsAMCModalOpen] = useState(false);
+  const [selectedAMC, setSelectedAMC] = useState<AMC | null>(null);
 
   const getAMCStats = (amc: AMC) => {
     const amcBills = billings.filter((b) => b.amc_id === amc.id);
@@ -200,19 +203,74 @@ export default function AMCsPage() {
     const matchesBillingCycle =
       billingCycleFilter === 'all' || amc.billing_cycle === billingCycleFilter;
 
+    const daysToEnd = differenceInDays(new Date(amc.end_date), new Date());
     const matchesExpiry =
       expiryFilter === null ||
-      differenceInDays(new Date(amc.end_date), new Date()) <= expiryFilter;
+      (daysToEnd >= 0 && daysToEnd <= expiryFilter);
 
     return matchesSearch && matchesStatus && matchesBillingCycle && matchesExpiry;
   });
 
-  const expiringAMCs = amcs.filter(
-    (amc) =>
-      amc.status === 'Active' && differenceInDays(new Date(amc.end_date), new Date()) <= 30
-  );
+  const expiringAMCs = amcs.filter((amc) => {
+    const daysToEnd = differenceInDays(new Date(amc.end_date), new Date());
+    return amc.status === 'Active' && daysToEnd >= 0 && daysToEnd <= 30;
+  });
 
   const pendingBills = billings.filter((b) => !b.paid);
+
+  const handleCreateAMC = (data: Partial<AMC>) => {
+    const newAMC: AMC = {
+      id: Math.max(...amcs.map((a) => a.id), 0) + 1,
+      client_id: data.client_id!,
+      client_name: mockClients.find((c) => c.id === data.client_id)?.name,
+      amc_number: data.amc_number!,
+      start_date: data.start_date!,
+      end_date: data.end_date!,
+      status: data.status!,
+      billing_cycle: data.billing_cycle!,
+      amount: data.amount!,
+      description: data.description,
+      notes: data.notes,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setAmcs([...amcs, newAMC]);
+  };
+
+  const handleUpdateAMC = (data: Partial<AMC>) => {
+    setAmcs(
+      amcs.map((amc) =>
+        amc.id === data.id
+          ? {
+              ...amc,
+              ...data,
+              client_name: mockClients.find((c) => c.id === data.client_id)?.name,
+              updated_at: new Date().toISOString(),
+            }
+          : amc
+      )
+    );
+  };
+
+  const handleAMCSubmit = (data: Partial<AMC>) => {
+    if (selectedAMC) {
+      handleUpdateAMC({ ...data, id: selectedAMC.id });
+    } else {
+      handleCreateAMC(data);
+    }
+    setIsAMCModalOpen(false);
+    setSelectedAMC(null);
+  };
+
+  const handleNewAMC = () => {
+    setSelectedAMC(null);
+    setIsAMCModalOpen(true);
+  };
+
+  const handleEditAMC = (amc: AMC) => {
+    setSelectedAMC(amc);
+    setIsAMCModalOpen(true);
+  };
 
   const getStatusBadgeClass = (status: string) => {
     const classes = {
@@ -242,7 +300,9 @@ export default function AMCsPage() {
               Manage Annual Maintenance Contracts and billing
             </p>
           </div>
-          <button className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+          <button 
+            onClick={handleNewAMC}
+            className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
             <Plus className="h-4 w-4" />
             New AMC
           </button>
@@ -533,6 +593,7 @@ export default function AMCsPage() {
                             <Eye className="h-4 w-4" />
                           </Link>
                           <button
+                            onClick={() => handleEditAMC(amc)}
                             className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                             title="Edit AMC"
                           >
@@ -563,12 +624,27 @@ export default function AMCsPage() {
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Get started by creating your first AMC contract
             </p>
-            <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+            <button
+              onClick={handleNewAMC}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+            >
               <Plus className="h-4 w-4" />
               New AMC
             </button>
           </div>
         )}
+
+        {/* AMC Form Modal */}
+        <AMCFormModal
+          isOpen={isAMCModalOpen}
+          onClose={() => {
+            setIsAMCModalOpen(false);
+            setSelectedAMC(null);
+          }}
+          onSubmit={handleAMCSubmit}
+          amc={selectedAMC}
+          clients={mockClients}
+        />
       </div>
     </DashboardLayout>
   );
