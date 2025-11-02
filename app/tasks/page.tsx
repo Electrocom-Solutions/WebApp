@@ -22,8 +22,9 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { mockTasks, getResourcesByTaskId, calculateTaskResourceCost, hasMissingUnitCosts } from "@/lib/mock-data/tasks";
-import { Task, TaskStatus } from "@/types";
+import { Task, TaskStatus, TaskResource } from "@/types";
 import { format, isToday, isThisWeek, isThisMonth, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { TaskDetailSlideOver } from "@/components/tasks/task-detail-slide-over";
 
 type PeriodFilter = "today" | "week" | "month" | "custom";
 
@@ -34,6 +35,55 @@ export default function TaskHubPage() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+
+  const openTaskDetail = (task: Task) => {
+    setSelectedTask(task);
+    setIsSlideOverOpen(true);
+  };
+
+  const closeTaskDetail = () => {
+    setIsSlideOverOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleSaveTask = (updatedTask: Task, resources: TaskResource[]) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
+    );
+    // In real app, would also update resources via API
+    console.log("Saved task:", updatedTask, "with resources:", resources);
+  };
+
+  const handleApproveTask = (task: Task) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? {
+              ...t,
+              status: "Approved",
+              approved_by: "Admin",
+              approved_at: new Date().toISOString(),
+            }
+          : t
+      )
+    );
+  };
+
+  const handleRejectTask = (task: Task, reason: string) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? {
+              ...t,
+              status: "Rejected",
+              internal_notes: (t.internal_notes || "") + `\n\nRejection reason: ${reason}`,
+            }
+          : t
+      )
+    );
+  };
 
   // Filter tasks by period
   const filteredTasks = useMemo(() => {
@@ -397,7 +447,7 @@ export default function TaskHubPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => toggleTaskExpand(task.id)}
+                            onClick={() => openTaskDetail(task)}
                             className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
                             title="View Details"
                           >
@@ -445,6 +495,18 @@ export default function TaskHubPage() {
           )}
         </div>
       </div>
+
+      {/* Task Detail Slide-Over */}
+      {selectedTask && (
+        <TaskDetailSlideOver
+          task={selectedTask}
+          isOpen={isSlideOverOpen}
+          onClose={closeTaskDetail}
+          onSave={handleSaveTask}
+          onApprove={handleApproveTask}
+          onReject={handleRejectTask}
+        />
+      )}
     </div>
   );
 }
