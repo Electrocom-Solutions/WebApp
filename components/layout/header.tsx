@@ -5,14 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown";
+import { mockNotifications } from "@/lib/mock-data/notifications";
 
 export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: string[] }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount] = useState(3);
+  const [unreadCount, setUnreadCount] = useState(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const count = mockNotifications.filter(n => !n.is_read).length;
+    setUnreadCount(count);
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("theme") as "light" | "dark";
@@ -91,39 +98,15 @@ export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: st
             >
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
                   {unreadCount}
                 </span>
               )}
             </Button>
 
             {showNotifications && (
-              <div className="absolute right-0 top-12 w-80 rounded-lg border bg-white shadow-lg dark:bg-gray-900">
-                <div className="border-b p-4">
-                  <h3 className="font-semibold">Notifications</h3>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <p className="text-sm font-medium">AMC Expiry Alert</p>
-                    <p className="text-xs text-gray-500">ABC Power Ltd AMC expires in 7 days</p>
-                    <p className="mt-1 text-xs text-gray-400">2 hours ago</p>
-                  </div>
-                  <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <p className="text-sm font-medium">New Task Assigned</p>
-                    <p className="text-xs text-gray-500">Panel installation at Site B</p>
-                    <p className="mt-1 text-xs text-gray-400">5 hours ago</p>
-                  </div>
-                  <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <p className="text-sm font-medium">Tender Deadline</p>
-                    <p className="text-xs text-gray-500">Tender TND/ER/001/2025 ends tomorrow</p>
-                    <p className="mt-1 text-xs text-gray-400">1 day ago</p>
-                  </div>
-                </div>
-                <div className="border-t p-2">
-                  <button className="w-full py-2 text-center text-sm text-sky-600 hover:bg-gray-50 dark:hover:bg-gray-800">
-                    View All Notifications
-                  </button>
-                </div>
+              <div className="absolute right-0 top-12 z-50">
+                <NotificationsDropdown />
               </div>
             )}
           </div>
