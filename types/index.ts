@@ -33,12 +33,15 @@ export type ClientActivity = {
 export type AMC = {
   id: number;
   client_id: number;
+  client_name?: string;
   amc_number: string;
   start_date: string;
   end_date: string;
   status: "Pending" | "Active" | "Expired" | "Canceled";
   billing_cycle: "Monthly" | "Quarterly" | "Half-yearly" | "Yearly";
   amount: number;
+  description?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 };
@@ -47,7 +50,7 @@ export type AMCBilling = {
   id: number;
   amc_id: number;
   bill_number: string;
-  bill_date: string;
+  bill_date?: string;
   period_from: string;
   period_to: string;
   amount: number;
@@ -55,6 +58,15 @@ export type AMCBilling = {
   payment_date?: string;
   payment_mode?: "Cash" | "Cheque" | "Bank Transfer" | "UPI";
   notes?: string;
+};
+
+export type AMCActivity = {
+  id: number;
+  amc_id: number;
+  type: "Bill Generated" | "Payment Received" | "Reminder Sent" | "AMC Renewed" | "AMC Canceled" | "Bill Canceled";
+  description: string;
+  performed_by: string;
+  timestamp: string;
 };
 
 export type Tender = {
