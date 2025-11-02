@@ -1,86 +1,304 @@
+"use client";
+
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Search, Plus, Eye, Edit, Trash2, X } from "lucide-react";
+import { Project } from "@/types";
+import { cn } from "@/lib/utils";
+
+const mockProjects: Project[] = [
+  {
+    id: 1,
+    client_id: 1,
+    name: "BSNL Network Expansion",
+    description: "Installation of HT panels and network equipment",
+    start_date: "2025-01-15",
+    end_date: "2025-06-15",
+    status: "In Progress",
+    created_at: "2025-01-10T10:00:00Z",
+    updated_at: "2025-01-10T10:00:00Z",
+  },
+  {
+    id: 2,
+    client_id: 2,
+    name: "DataNet Server Room Setup",
+    description: "Complete server room infrastructure setup",
+    start_date: "2025-02-01",
+    end_date: "2025-04-30",
+    status: "Planned",
+    created_at: "2025-01-20T10:00:00Z",
+    updated_at: "2025-01-20T10:00:00Z",
+  },
+  {
+    id: 3,
+    client_id: 3,
+    name: "PowerGrid Transformer Maintenance",
+    description: "Annual maintenance of transformers",
+    start_date: "2024-11-01",
+    end_date: "2024-12-31",
+    status: "Completed",
+    created_at: "2024-10-25T10:00:00Z",
+    updated_at: "2025-01-05T10:00:00Z",
+  },
+];
 
 export default function ProjectsPage() {
-  const projects = [
-    {
-      id: 1,
-      name: "HT Panel Installation - Site A",
-      client: "ABC Power Ltd",
-      startDate: "2025-01-15",
-      endDate: "2025-03-15",
-      status: "In Progress" as const,
-    },
-    {
-      id: 2,
-      name: "Transformer Maintenance",
-      client: "XYZ Industries",
-      startDate: "2025-02-01",
-      endDate: "2025-02-28",
-      status: "Planned" as const,
-    },
-  ];
+  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      Planned: "default",
-      "In Progress": "warning",
-      "On Hold": "secondary",
-      Completed: "success",
-      Canceled: "danger",
-    } as const;
-    return variants[status as keyof typeof variants] || "default";
+  const filteredProjects = projects.filter((project) =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to delete this project?")) {
+      setProjects(prev => prev.filter(p => p.id !== id));
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Planned":
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+      case "In Progress":
+        return "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400";
+      case "On Hold":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "Completed":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+      case "Canceled":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+    }
   };
 
   return (
     <DashboardLayout title="Projects" breadcrumbs={["Home", "Projects"]}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">Project Management</h2>
-            <p className="text-gray-500">Track ongoing projects and milestones</p>
+          <div className="relative w-80">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
-          <Button>
+          <Button onClick={() => {
+            setSelectedProject(null);
+            setShowModal(true);
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             Create Project
           </Button>
         </div>
 
-        <Card>
-          <CardHeader />
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-3 text-left text-sm font-medium">Project Name</th>
-                    <th className="p-3 text-left text-sm font-medium">Client</th>
-                    <th className="p-3 text-left text-sm font-medium">Start Date</th>
-                    <th className="p-3 text-left text-sm font-medium">End Date</th>
-                    <th className="p-3 text-left text-sm font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((project) => (
-                    <tr key={project.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <td className="p-3 font-medium">{project.name}</td>
-                      <td className="p-3 text-gray-600 dark:text-gray-400">{project.client}</td>
-                      <td className="p-3 text-gray-600 dark:text-gray-400">{project.startDate}</td>
-                      <td className="p-3 text-gray-600 dark:text-gray-400">{project.endDate}</td>
-                      <td className="p-3">
-                        <Badge variant={getStatusBadge(project.status)}>{project.status}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className="grid gap-4">
+          {filteredProjects.map((project) => (
+            <div
+              key={project.id}
+              className="bg-white dark:bg-gray-900 rounded-lg border p-4 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-lg">{project.name}</h3>
+                    <span className={cn("px-2 py-1 text-xs rounded-full", getStatusColor(project.status))}>
+                      {project.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {project.description}
+                  </p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                    <span>Start: {new Date(project.start_date).toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span>End: {new Date(project.end_date).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => alert("Project details view - would show tasks, resources, timeline")}
+                    title="View Details"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedProject(project);
+                      setShowModal(true);
+                    }}
+                    title="Edit"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(project.id)}
+                    title="Delete"
+                    className="text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </div>
+
+      {showModal && (
+        <ProjectModal
+          project={selectedProject}
+          onClose={() => setShowModal(false)}
+          onSave={(project) => {
+            if (selectedProject) {
+              setProjects(prev => prev.map(p => p.id === project.id ? project : p));
+            } else {
+              setProjects(prev => [project, ...prev]);
+            }
+            setShowModal(false);
+          }}
+        />
+      )}
     </DashboardLayout>
+  );
+}
+
+function ProjectModal({
+  project,
+  onClose,
+  onSave,
+}: {
+  project: Project | null;
+  onClose: () => void;
+  onSave: (project: Project) => void;
+}) {
+  const [name, setName] = useState(project?.name || "");
+  const [description, setDescription] = useState(project?.description || "");
+  const [startDate, setStartDate] = useState(project?.start_date || "");
+  const [endDate, setEndDate] = useState(project?.end_date || "");
+  const [status, setStatus] = useState<"Planned" | "In Progress" | "On Hold" | "Completed" | "Canceled">(project?.status || "Planned");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const savedProject: Project = {
+      id: project?.id || Date.now(),
+      client_id: project?.client_id || 1,
+      name,
+      description,
+      start_date: startDate,
+      end_date: endDate,
+      status: status as any,
+      created_at: project?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    onSave(savedProject);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
+          <h2 className="text-xl font-semibold">
+            {project ? "Edit Project" : "Create Project"}
+          </h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Project Name <span className="text-red-500">*</span>
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Network Infrastructure Setup"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+              placeholder="Project description"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Start Date <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                End Date <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+              required
+            >
+              <option value="Planned">Planned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="On Hold">On Hold</option>
+              <option value="Completed">Completed</option>
+              <option value="Canceled">Canceled</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              {project ? "Update" : "Create"} Project
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
