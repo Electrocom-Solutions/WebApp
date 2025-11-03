@@ -94,7 +94,18 @@ The frontend is designed to match the database schema provided in the requiremen
 - ✅ **Tender Module**: Complete with EMD tracking, Security Deposits (SD1/SD2), DD details, auto-calculation guards, financial reorganization
 - ✅ **Task Module**: Status and priority filters, CSV export
 - ✅ **Project Module**: Client dropdown integration
-- ✅ **Contract Workers**: Emergency contact, bank details, PF/ESI fields with scrollable modal
+- ✅ **Contract Workers**: Complete contract worker management with:
+  - Designation dropdown (Electrician, Helper, Fitter, Technician, Supervisor) instead of skill text field
+  - Monthly Salary field instead of daily rate
+  - Project dropdown for assignment (from mockProjects array)
+  - UAN Number and Aadhar Card Number fields
+  - Bank details (Account Number, IFSC Code, Bank Name, Branch Name)
+  - Status tracking (Available, Assigned, Inactive)
+  - Bulk import via Excel with updated field names
+  - Stats: Total Workers, Active, Assigned, Total of All Salaries
+  - Full dark theme support across all form labels
+  - CRUD operations with slide-over modal
+  - Search and filtering capabilities
 - ✅ **Attendance Module**: Complete employee attendance management with:
   - Employees only (not contract workers)
   - Approval workflow: Pending → Approved/Rejected with reason
@@ -106,6 +117,9 @@ The frontend is designed to match the database schema provided in the requiremen
   - Manual attendance marking with employee dropdown
   - Replace logic: if record exists for employee+date, it replaces
   - Edit button for each record (owner can modify any attendance)
+  - Bulk selection with checkboxes for employees
+  - Bulk "Mark as Present" action with date selection
+  - BulkMarkPresentModal creates records with "Pending" status
   - Stats: Working Days (26 default), Employees Present, Absent, On Leave, Pending Approval
   - Export Report modal with month/year selection
   - CSV export with all attendance data
