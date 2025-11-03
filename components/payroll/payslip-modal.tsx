@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Download, IndianRupee } from "lucide-react";
+import { X, Download } from "lucide-react";
 import { PayrollRecord } from "@/types";
 import { format } from "date-fns";
 
@@ -18,6 +18,12 @@ export function PayslipModal({ payroll, isOpen, onClose }: PayslipModalProps) {
   };
 
   const computation = payroll.computation_details;
+
+  // Calculate leave deduction
+  const leaveDays = payroll.days_absent;
+  const leaveDeduction = computation ? computation.per_day_rate * leaveDays : 0;
+  const baseSalary = computation?.base_salary || 0;
+  const netPayable = baseSalary - leaveDeduction;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -65,12 +71,6 @@ export function PayslipModal({ payroll, isOpen, onClose }: PayslipModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Employee Type</p>
-                  <p className="mt-1 text-base font-semibold text-gray-900 dark:text-white">
-                    {payroll.employee_type}
-                  </p>
-                </div>
-                <div>
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Period</p>
                   <p className="mt-1 text-base font-semibold text-gray-900 dark:text-white">
                     {format(new Date(payroll.period_start), "dd MMM yyyy")} -{" "}
@@ -98,10 +98,10 @@ export function PayslipModal({ payroll, isOpen, onClose }: PayslipModalProps) {
 
             {computation && (
               <>
-                {/* Attendance & Salary Breakdown */}
+                {/* Salary Breakdown */}
                 <div className="mb-6">
                   <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Attendance & Computation
+                    Salary Breakdown
                   </h4>
                   <div className="space-y-2 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                     <div className="flex justify-between">
@@ -120,11 +120,12 @@ export function PayslipModal({ payroll, isOpen, onClose }: PayslipModalProps) {
                       <span className="text-sm text-gray-600 dark:text-gray-400">Days Present</span>
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {computation.days_present}
-                        {payroll.days_absent > 0 && (
-                          <span className="ml-1 text-xs text-red-600 dark:text-red-400">
-                            ({payroll.days_absent} absent)
-                          </span>
-                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Days Absent (Leave)</span>
+                      <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                        {leaveDays}
                       </span>
                     </div>
                     <div className="flex justify-between border-t border-gray-200 pt-2 dark:border-gray-700">
@@ -133,65 +134,22 @@ export function PayslipModal({ payroll, isOpen, onClose }: PayslipModalProps) {
                         ₹{computation.per_day_rate.toLocaleString("en-IN")}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">Earned Salary</span>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        ₹{computation.earned_salary.toLocaleString("en-IN")}
-                      </span>
-                    </div>
                   </div>
                 </div>
 
-                {/* Allowances */}
-                {computation.allowances && computation.allowances.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                      Allowances
-                    </h4>
-                    <div className="space-y-2 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                      {computation.allowances.map((allowance, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">{allowance.name}</span>
-                          <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                            +₹{allowance.amount.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Gross Amount */}
-                <div className="mb-6 rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-semibold text-gray-900 dark:text-white">Gross Amount</span>
-                    <span className="text-xl font-bold text-green-600 dark:text-green-400">
-                      ₹{computation.gross_amount.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Deductions */}
-                {computation.deductions.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                      Deductions
-                    </h4>
-                    <div className="space-y-2 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                      {computation.deductions.map((deduction, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">{deduction.name}</span>
-                          <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                            -₹{deduction.amount.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between border-t border-gray-200 pt-2 dark:border-gray-700">
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">Total Deductions</span>
-                        <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                          -₹{computation.total_deductions.toLocaleString("en-IN")}
-                        </span>
+                {/* Leave Deduction */}
+                {leaveDays > 0 && (
+                  <div className="mb-6 rounded-lg bg-red-50 p-4 dark:bg-red-900/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Leave Deduction</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {leaveDays} day{leaveDays > 1 ? "s" : ""} × ₹{computation.per_day_rate.toLocaleString("en-IN")}
+                        </p>
                       </div>
+                      <span className="text-xl font-bold text-red-600 dark:text-red-400">
+                        -₹{leaveDeduction.toLocaleString("en-IN")}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -202,18 +160,13 @@ export function PayslipModal({ payroll, isOpen, onClose }: PayslipModalProps) {
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Net Payable Amount</p>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-                        (Gross - Deductions)
+                        (Base Salary - Leave Deduction)
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">
-                        ₹{computation.net_amount.toLocaleString("en-IN")}
+                        ₹{netPayable.toLocaleString("en-IN")}
                       </p>
-                      {payroll.payment_status === "Paid" && payroll.payment_date && (
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          Paid on {format(new Date(payroll.payment_date), "dd MMM yyyy")}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -225,19 +178,19 @@ export function PayslipModal({ payroll, isOpen, onClose }: PayslipModalProps) {
                       Payment Details
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
+                      {payroll.payment_date && (
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Payment Date</p>
+                          <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                            {format(new Date(payroll.payment_date), "dd MMM yyyy")}
+                          </p>
+                        </div>
+                      )}
                       {payroll.payment_mode && (
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Payment Mode</p>
                           <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
                             {payroll.payment_mode}
-                          </p>
-                        </div>
-                      )}
-                      {payroll.bank_transaction_ref && (
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Transaction Reference</p>
-                          <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                            {payroll.bank_transaction_ref}
                           </p>
                         </div>
                       )}

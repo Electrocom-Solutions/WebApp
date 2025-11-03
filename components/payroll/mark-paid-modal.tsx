@@ -1,27 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { X, Check } from "lucide-react";
+import { X, Check, Calendar } from "lucide-react";
 import { PayrollRecord, PaymentMode } from "@/types";
+import { format } from "date-fns";
 
 interface MarkPaidModalProps {
   payroll: PayrollRecord;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (paymentMode: PaymentMode, bankRef: string, paymentDate: string) => void;
+  onSubmit: (paymentMode: PaymentMode, paymentDate: string) => void;
 }
 
 export function MarkPaidModal({ payroll, isOpen, onClose, onSubmit }: MarkPaidModalProps) {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("Bank Transfer");
-  const [bankRef, setBankRef] = useState("");
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   if (!isOpen) return null;
 
+  const handleTodayDate = () => {
+    setPaymentDate(format(new Date(), "yyyy-MM-dd"));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(paymentMode, bankRef, paymentDate);
-    onClose();
+    onSubmit(paymentMode, paymentDate);
   };
 
   return (
@@ -59,6 +62,30 @@ export function MarkPaidModal({ payroll, isOpen, onClose, onSubmit }: MarkPaidMo
 
             <div className="space-y-4">
               <div>
+                <label htmlFor="payment-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Payment Date <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2 mt-1">
+                  <input
+                    id="payment-date"
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    required
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTodayDate}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Today
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <label htmlFor="payment-mode" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Payment Mode <span className="text-red-500">*</span>
                 </label>
@@ -74,38 +101,6 @@ export function MarkPaidModal({ payroll, isOpen, onClose, onSubmit }: MarkPaidMo
                   <option value="Bank Transfer">Bank Transfer</option>
                   <option value="UPI">UPI</option>
                 </select>
-              </div>
-
-              <div>
-                <label htmlFor="bank-ref" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Bank Transaction Reference
-                  {(paymentMode === "Bank Transfer" || paymentMode === "UPI") && (
-                    <span className="text-red-500"> *</span>
-                  )}
-                </label>
-                <input
-                  id="bank-ref"
-                  type="text"
-                  value={bankRef}
-                  onChange={(e) => setBankRef(e.target.value)}
-                  required={paymentMode === "Bank Transfer" || paymentMode === "UPI"}
-                  placeholder="Enter transaction ID or reference number"
-                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="payment-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Payment Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="payment-date"
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  required
-                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
               </div>
             </div>
 
