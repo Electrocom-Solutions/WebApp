@@ -16,6 +16,7 @@ import {
   HardHat,
   CalendarCheck,
   Wallet,
+  CreditCard,
   Package,
   ListTodo,
   BarChart3,
@@ -49,6 +50,7 @@ const navigationGroups = [
       { name: "Contract Workers", href: "/contract-workers", icon: HardHat },
       { name: "Attendance", href: "/attendance", icon: CalendarCheck },
       { name: "Payroll", href: "/payroll", icon: Wallet },
+      { name: "Payment Tracking", href: "/payments", icon: CreditCard },
     ],
   },
   {

@@ -256,8 +256,8 @@ export type DocumentVersion = {
   notes?: string;
 };
 
-export type PaymentMode = "Cash" | "Cheque" | "Bank Transfer" | "UPI";
-export type PaymentStatus = "Pending" | "Paid" | "Hold";
+export type PaymentMode = "Cash" | "Cheque" | "Bank Transfer" | "UPI" | "NEFT/RTGS";
+export type PaymentStatus = "Pending" | "Paid" | "Hold" | "Overdue" | "Cancelled";
 
 export type PayrollRecord = {
   id: number;
@@ -302,6 +302,30 @@ export type PayrollComputation = {
   }[];
   total_deductions: number;
   net_amount: number;
+};
+
+export type PaymentCategory = "Vendor" | "Contractor" | "Employee" | "Utility" | "Other";
+
+export type Payment = {
+  id: number;
+  payment_number: string;
+  vendor_name?: string;
+  contractor_id?: number;
+  contractor_name?: string;
+  employee_id?: number;
+  employee_name?: string;
+  category: PaymentCategory;
+  amount: number;
+  description: string;
+  due_date: string;
+  paid_date?: string;
+  status: PaymentStatus;
+  payment_mode?: PaymentMode;
+  transaction_reference?: string;
+  notes?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type NotificationType = "Task" | "Bill" | "Tender" | "Payroll" | "System" | "Reminder";
