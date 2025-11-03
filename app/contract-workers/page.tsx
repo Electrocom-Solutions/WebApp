@@ -13,21 +13,31 @@ type ContractWorker = {
   name: string;
   worker_id: string;
   phone: string;
-  skill: string;
-  daily_rate: number;
+  designation: string;
+  monthly_salary: number;
   address?: string;
-  assigned_to?: string;
+  project_id?: number;
+  project_name?: string;
   status: "Available" | "Assigned" | "Inactive";
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  emergency_contact_relation?: string;
   bank_name?: string;
   bank_account_number?: string;
   bank_ifsc?: string;
-  pf_number?: string;
-  esi_number?: string;
+  uan_number?: string;
+  aadhar_number?: string;
   created_at: string;
 };
+
+type Project = {
+  id: number;
+  name: string;
+};
+
+const mockProjects: Project[] = [
+  { id: 1, name: "BSNL Network Project" },
+  { id: 2, name: "Reliance Telecom Tower" },
+  { id: 3, name: "Vodafone Network Expansion" },
+  { id: 4, name: "Airtel Fiber Installation" },
+];
 
 const mockWorkers: ContractWorker[] = [
   {
@@ -35,18 +45,15 @@ const mockWorkers: ContractWorker[] = [
     name: "Ram Prakash",
     worker_id: "CW-001",
     phone: "+91 98765 11111",
-    skill: "Electrician",
-    daily_rate: 800,
+    designation: "Electrician",
+    monthly_salary: 24000,
     address: "Andheri, Mumbai",
     status: "Available",
-    emergency_contact_name: "Sita Prakash",
-    emergency_contact_phone: "+91 98765 11112",
-    emergency_contact_relation: "Wife",
     bank_name: "State Bank of India",
     bank_account_number: "1234567890",
     bank_ifsc: "SBIN0001234",
-    pf_number: "MH/MUM/12345/67890",
-    esi_number: "1234567890123456",
+    uan_number: "101234567890",
+    aadhar_number: "1234 5678 9012",
     created_at: "2025-01-01T00:00:00Z",
   },
   {
@@ -54,14 +61,16 @@ const mockWorkers: ContractWorker[] = [
     name: "Vikram Singh",
     worker_id: "CW-002",
     phone: "+91 98765 22222",
-    skill: "Welder",
-    daily_rate: 900,
+    designation: "Supervisor",
+    monthly_salary: 35000,
     address: "Thane, Mumbai",
-    assigned_to: "BSNL Network Project",
+    project_id: 1,
+    project_name: "BSNL Network Project",
     status: "Assigned",
     bank_name: "HDFC Bank",
     bank_account_number: "0987654321",
     bank_ifsc: "HDFC0001234",
+    uan_number: "101234567891",
     created_at: "2025-01-05T00:00:00Z",
   },
   {
@@ -69,10 +78,11 @@ const mockWorkers: ContractWorker[] = [
     name: "Sunil Kumar",
     worker_id: "CW-003",
     phone: "+91 98765 33333",
-    skill: "Fitter",
-    daily_rate: 750,
+    designation: "Fitter",
+    monthly_salary: 22000,
     address: "Vashi, Navi Mumbai",
     status: "Available",
+    aadhar_number: "9876 5432 1098",
     created_at: "2025-01-10T00:00:00Z",
   },
 ];
@@ -80,13 +90,13 @@ const mockWorkers: ContractWorker[] = [
 export default function ContractWorkersPage() {
   const [workers, setWorkers] = useState<ContractWorker[]>(mockWorkers);
   const [searchQuery, setSearchQuery] = useState("");
-  const [skillFilter, setSkillFilter] = useState("all");
+  const [designationFilter, setDesignationFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<ContractWorker | null>(null);
 
-  const skills = ["all", ...Array.from(new Set(workers.map(w => w.skill)))];
+  const designations = ["all", ...Array.from(new Set(workers.map(w => w.designation)))];
 
   const filteredWorkers = workers.filter((worker) => {
     const matchesSearch = searchQuery === "" ||
@@ -94,10 +104,10 @@ export default function ContractWorkersPage() {
       worker.worker_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       worker.phone.includes(searchQuery);
     
-    const matchesSkill = skillFilter === "all" || worker.skill === skillFilter;
+    const matchesDesignation = designationFilter === "all" || worker.designation === designationFilter;
     const matchesStatus = statusFilter === "all" || worker.status === statusFilter;
     
-    return matchesSearch && matchesSkill && matchesStatus;
+    return matchesSearch && matchesDesignation && matchesStatus;
   });
 
   const handleDelete = async (id: number) => {
@@ -161,9 +171,9 @@ export default function ContractWorkersPage() {
             </div>
           </div>
           <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
-            <div className="text-sm text-gray-500 dark:text-gray-400">Avg Daily Rate</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">Total Salaries</div>
             <div className="text-2xl font-bold mt-1 text-sky-600">
-              ₹{Math.round(workers.reduce((sum, w) => sum + w.daily_rate, 0) / workers.length)}
+              ₹{workers.reduce((sum, w) => sum + w.monthly_salary, 0).toLocaleString('en-IN')}
             </div>
           </div>
         </div>
@@ -180,13 +190,13 @@ export default function ContractWorkersPage() {
             />
           </div>
           <select
-            value={skillFilter}
-            onChange={(e) => setSkillFilter(e.target.value)}
+            value={designationFilter}
+            onChange={(e) => setDesignationFilter(e.target.value)}
             className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
           >
-            {skills.map(skill => (
-              <option key={skill} value={skill}>
-                {skill === "all" ? "All Skills" : skill}
+            {designations.map(designation => (
+              <option key={designation} value={designation}>
+                {designation === "all" ? "All Designations" : designation}
               </option>
             ))}
           </select>
@@ -213,10 +223,10 @@ export default function ContractWorkersPage() {
                   Contact
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Skill
+                  Designation
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Daily Rate
+                  Monthly Salary
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Assignment
@@ -256,13 +266,13 @@ export default function ContractWorkersPage() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant="secondary">{worker.skill}</Badge>
+                    <Badge variant="secondary">{worker.designation}</Badge>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium">
-                    ₹{worker.daily_rate}/day
+                  <td className="px-6 py-4 text-sm font-medium dark:text-gray-200">
+                    ₹{worker.monthly_salary.toLocaleString('en-IN')}/mo
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {worker.assigned_to || "-"}
+                    {worker.project_name || "-"}
                   </td>
                   <td className="px-6 py-4">
                     <Badge className={getStatusColor(worker.status)}>
@@ -335,27 +345,37 @@ function WorkerModal({ worker, onClose, onSave }: {
     name: worker?.name || "",
     worker_id: worker?.worker_id || `CW-${Date.now().toString().slice(-3)}`,
     phone: worker?.phone || "",
-    skill: worker?.skill || "Electrician",
-    daily_rate: worker?.daily_rate?.toString() || "",
+    designation: worker?.designation || "Electrician",
+    monthly_salary: worker?.monthly_salary?.toString() || "",
     address: worker?.address || "",
-    assigned_to: worker?.assigned_to || "",
+    project_id: worker?.project_id || 0,
     status: worker?.status || "Available",
-    emergency_contact_name: worker?.emergency_contact_name || "",
-    emergency_contact_phone: worker?.emergency_contact_phone || "",
-    emergency_contact_relation: worker?.emergency_contact_relation || "",
     bank_name: worker?.bank_name || "",
     bank_account_number: worker?.bank_account_number || "",
     bank_ifsc: worker?.bank_ifsc || "",
-    pf_number: worker?.pf_number || "",
-    esi_number: worker?.esi_number || "",
+    uan_number: worker?.uan_number || "",
+    aadhar_number: worker?.aadhar_number || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedProject = mockProjects.find(p => p.id === formData.project_id);
     const savedWorker: ContractWorker = {
       id: worker?.id || Date.now(),
-      ...formData,
-      daily_rate: parseInt(formData.daily_rate),
+      name: formData.name,
+      worker_id: formData.worker_id,
+      phone: formData.phone,
+      designation: formData.designation,
+      monthly_salary: parseInt(formData.monthly_salary),
+      address: formData.address || undefined,
+      project_id: formData.project_id > 0 ? formData.project_id : undefined,
+      project_name: selectedProject ? selectedProject.name : undefined,
+      status: formData.status,
+      bank_name: formData.bank_name || undefined,
+      bank_account_number: formData.bank_account_number || undefined,
+      bank_ifsc: formData.bank_ifsc || undefined,
+      uan_number: formData.uan_number || undefined,
+      aadhar_number: formData.aadhar_number || undefined,
       created_at: worker?.created_at || new Date().toISOString(),
     };
     onSave(savedWorker);
@@ -398,25 +418,25 @@ function WorkerModal({ worker, onClose, onSave }: {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Skill</label>
+              <label className="block text-sm font-medium mb-2">Designation</label>
               <select
-                value={formData.skill}
-                onChange={(e) => setFormData({ ...formData, skill: e.target.value })}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                value={formData.designation}
+                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-gray-200"
               >
                 <option value="Electrician">Electrician</option>
-                <option value="Welder">Welder</option>
-                <option value="Fitter">Fitter</option>
                 <option value="Helper">Helper</option>
+                <option value="Fitter">Fitter</option>
                 <option value="Technician">Technician</option>
+                <option value="Supervisor">Supervisor</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Daily Rate (₹)</label>
+              <label className="block text-sm font-medium mb-2">Monthly Salary (₹) <span className="text-red-500">*</span></label>
               <Input
                 type="number"
-                value={formData.daily_rate}
-                onChange={(e) => setFormData({ ...formData, daily_rate: e.target.value })}
+                value={formData.monthly_salary}
+                onChange={(e) => setFormData({ ...formData, monthly_salary: e.target.value })}
                 required
               />
             </div>
@@ -432,7 +452,7 @@ function WorkerModal({ worker, onClose, onSave }: {
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-gray-200"
               >
                 <option value="Available">Available</option>
                 <option value="Assigned">Assigned</option>
@@ -440,50 +460,27 @@ function WorkerModal({ worker, onClose, onSave }: {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Assigned To</label>
-              <Input
-                value={formData.assigned_to}
-                onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                placeholder="Project name"
-              />
+              <label className="block text-sm font-medium mb-2">Assigned Project</label>
+              <select
+                value={formData.project_id}
+                onChange={(e) => setFormData({ ...formData, project_id: Number(e.target.value) })}
+                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-gray-200"
+              >
+                <option value={0}>Not Assigned</option>
+                {mockProjects.map(project => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="border-t dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Emergency Contact</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Contact Name</label>
-                <Input
-                  value={formData.emergency_contact_name}
-                  onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
-                  placeholder="Emergency contact name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Contact Phone</label>
-                <Input
-                  value={formData.emergency_contact_phone}
-                  onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
-                  placeholder="+91 XXXXX XXXXX"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-2">Relation</label>
-                <Input
-                  value={formData.emergency_contact_relation}
-                  onChange={(e) => setFormData({ ...formData, emergency_contact_relation: e.target.value })}
-                  placeholder="e.g., Spouse, Parent, Sibling"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Bank Details</h3>
+            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Bank Details & ID Proof</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium mb-2">Bank Name</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Bank Name</label>
                 <Input
                   value={formData.bank_name}
                   onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
@@ -491,7 +488,7 @@ function WorkerModal({ worker, onClose, onSave }: {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Account Number</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Account Number</label>
                 <Input
                   value={formData.bank_account_number}
                   onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
@@ -499,33 +496,27 @@ function WorkerModal({ worker, onClose, onSave }: {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">IFSC Code</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">IFSC Code</label>
                 <Input
                   value={formData.bank_ifsc}
                   onChange={(e) => setFormData({ ...formData, bank_ifsc: e.target.value })}
                   placeholder="e.g., SBIN0001234"
                 />
               </div>
-            </div>
-          </div>
-
-          <div className="border-t dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">PF & ESI Details</h3>
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">PF Number</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">UAN Number</label>
                 <Input
-                  value={formData.pf_number}
-                  onChange={(e) => setFormData({ ...formData, pf_number: e.target.value })}
-                  placeholder="PF number"
+                  value={formData.uan_number}
+                  onChange={(e) => setFormData({ ...formData, uan_number: e.target.value })}
+                  placeholder="Universal Account Number"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">ESI Number</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Aadhar Card Number</label>
                 <Input
-                  value={formData.esi_number}
-                  onChange={(e) => setFormData({ ...formData, esi_number: e.target.value })}
-                  placeholder="ESI number"
+                  value={formData.aadhar_number}
+                  onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
+                  placeholder="XXXX XXXX XXXX"
                 />
               </div>
             </div>
