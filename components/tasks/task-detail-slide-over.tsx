@@ -19,6 +19,8 @@ import {
   Plus,
   IndianRupee,
   AlertCircle,
+  Eye,
+  ExternalLink,
 } from "lucide-react";
 import { Task, TaskResource, TaskAttachment, TaskActivity } from "@/types";
 import {
@@ -52,6 +54,7 @@ export function TaskDetailSlideOver({
   const [activities, setActivities] = useState<TaskActivity[]>([]);
   const [internalNote, setInternalNote] = useState(task.internal_notes || "");
   const [hasChanges, setHasChanges] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<TaskAttachment | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -275,7 +278,8 @@ export function TaskDetailSlideOver({
                   {attachments.map((attachment) => (
                     <div
                       key={attachment.id}
-                      className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-3 hover:border-sky-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-sky-600"
+                      className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-3 hover:border-sky-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-sky-600 cursor-pointer"
+                      onClick={() => setPreviewAttachment(attachment)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-900/30">
@@ -293,6 +297,7 @@ export function TaskDetailSlideOver({
                             {formatFileSize(attachment.file_size)}
                           </p>
                         </div>
+                        <Eye className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                   ))}
@@ -535,17 +540,92 @@ export function TaskDetailSlideOver({
                 Reject
               </button>
             )}
-            <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-              <UserPlus className="h-4 w-4" />
-              Assign
-            </button>
-            <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-              <Download className="h-4 w-4" />
-              Export Task
-            </button>
           </div>
         </div>
       </div>
+
+      {/* Attachment Preview Modal */}
+      {previewAttachment && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setPreviewAttachment(null)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-5xl w-full bg-white dark:bg-gray-900 rounded-lg shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Preview Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                  {previewAttachment.file_name}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {formatFileSize(previewAttachment.file_size)} · {previewAttachment.file_type}
+                </p>
+              </div>
+              <button
+                onClick={() => setPreviewAttachment(null)}
+                className="ml-4 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Preview Content */}
+            <div className="p-6 max-h-[calc(90vh-120px)] overflow-auto">
+              {previewAttachment.file_type === "image" ? (
+                <img
+                  src={previewAttachment.file_url}
+                  alt={previewAttachment.file_name}
+                  className="w-full h-auto rounded-lg"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='18' fill='%23666'%3EImage preview unavailable%3C/text%3E%3C/svg%3E";
+                  }}
+                />
+              ) : previewAttachment.file_type === "pdf" ? (
+                <div className="space-y-4">
+                  <iframe
+                    src={previewAttachment.file_url}
+                    className="w-full h-[calc(90vh-200px)] rounded-lg border border-gray-200 dark:border-gray-700"
+                    title={previewAttachment.file_name}
+                  />
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    PDF preview. If the document doesn't display, please download it to view.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <FileText className="h-16 w-16 text-gray-400 mb-4" />
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    Preview not available for this file type
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Please download the file to view it
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Preview Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Uploaded by {previewAttachment.uploaded_by} · {format(new Date(previewAttachment.uploaded_at), "MMM dd, yyyy 'at' HH:mm")}
+                </div>
+                <a
+                  href={previewAttachment.file_url}
+                  download={previewAttachment.file_name}
+                  className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

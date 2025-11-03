@@ -20,12 +20,15 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 import { mockTasks, getResourcesByTaskId, calculateTaskResourceCost, hasMissingUnitCosts } from "@/lib/mock-data/tasks";
-import { Task, TaskStatus, TaskResource } from "@/types";
+import { Task, TaskStatus, TaskResource, TaskPriority } from "@/types";
 import { format, isToday, isThisWeek, isThisMonth, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { TaskDetailSlideOver } from "@/components/tasks/task-detail-slide-over";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { showSuccess, showError } from "@/lib/sweetalert";
+import { mockClients } from "@/lib/mock-data/clients";
 
 type PeriodFilter = "today" | "week" | "month" | "custom";
 
@@ -41,11 +44,13 @@ export default function TaskHubPage() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("today");
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Helper to get resources for a task from state
   const getTaskResources = (taskId: number): TaskResource[] => {
@@ -115,6 +120,14 @@ export default function TaskHubPage() {
     );
   };
 
+  // Get unique projects for filter
+  const uniqueProjects = useMemo(() => {
+    const projects = tasks
+      .map((task) => task.project_name)
+      .filter((name): name is string => !!name);
+    return Array.from(new Set(projects)).sort();
+  }, [tasks]);
+
   // Filter tasks by period
   const filteredTasks = useMemo(() => {
     let filtered = tasks;
@@ -133,6 +146,11 @@ export default function TaskHubPage() {
       filtered = filtered.filter((task) => task.status === statusFilter);
     }
 
+    // Project filter
+    if (projectFilter !== "all") {
+      filtered = filtered.filter((task) => task.project_name === projectFilter);
+    }
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -147,7 +165,7 @@ export default function TaskHubPage() {
     }
 
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [tasks, periodFilter, statusFilter, searchQuery]);
+  }, [tasks, periodFilter, statusFilter, projectFilter, searchQuery]);
 
   // Calculate summary stats
   const stats = useMemo(() => {
@@ -191,23 +209,55 @@ export default function TaskHubPage() {
     }
   };
 
+  // CSV escape function
+  const escapeCSV = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined) return "";
+    const stringValue = String(value);
+    if (
+      stringValue.includes(",") ||
+      stringValue.includes('"') ||
+      stringValue.includes("\n")
+    ) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+  };
+
   const handleExportCSV = () => {
-    // Prepare CSV data
-    const headers = ["Date", "Employee", "Client/Project", "Description", "Time (hrs)", "Status", "Resource Cost"];
+    // Prepare CSV data with all details
+    const headers = [
+      "Task ID",
+      "Date",
+      "Employee",
+      "Project",
+      "Description",
+      "Location",
+      "Time Taken (hrs)",
+      "Priority",
+      "Status",
+      "Resource Cost (₹)",
+      "Assigned By",
+      "Approved By",
+    ];
     const rows = filteredTasks.map((task) => [
+      task.id,
       format(new Date(task.date), "dd/MM/yyyy"),
       task.employee_name || "-",
-      task.client_name || task.project_name || "-",
+      task.project_name || "-",
       task.description,
+      task.location,
       (task.time_taken_minutes / 60).toFixed(2),
+      task.priority,
       task.status,
-      `₹${calculateTaskResourceCostFromState(task.id).toLocaleString("en-IN")}`,
+      calculateTaskResourceCostFromState(task.id).toLocaleString("en-IN"),
+      task.assigned_by || "-",
+      task.approved_by || "-",
     ]);
 
-    // Convert to CSV string
+    // Convert to CSV string with proper escaping
     const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) => row.map(escapeCSV).join(",")),
     ].join("\n");
 
     // Create download link
@@ -234,7 +284,10 @@ export default function TaskHubPage() {
             <Download className="h-4 w-4" />
             Export
           </button>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+          >
             <Plus className="h-4 w-4" />
             Create Task
           </button>
@@ -355,6 +408,18 @@ export default function TaskHubPage() {
             />
           </div>
           <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+          >
+            <option value="all">All Projects</option>
+            {uniqueProjects.map((project) => (
+              <option key={project} value={project}>
+                {project}
+              </option>
+            ))}
+          </select>
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as TaskStatus | "all")}
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
@@ -407,7 +472,7 @@ export default function TaskHubPage() {
                     Employee
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                    Client / Project
+                    Project
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
                     Description
@@ -456,9 +521,8 @@ export default function TaskHubPage() {
                       <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                         {task.employee_name}
                       </td>
-                      <td className="px-4 py-4 text-sm">
-                        <div className="text-gray-900 dark:text-white">{task.client_name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{task.project_name}</div>
+                      <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
+                        {task.project_name || "-"}
                       </td>
                       <td className="max-w-xs px-4 py-4 text-sm">
                         <div className="flex items-start gap-2">
@@ -501,33 +565,13 @@ export default function TaskHubPage() {
                         )}
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => openTaskDetail(task)}
-                            className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
-                            title="View Details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
-                            title="Edit"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
-                            title="Assign"
-                          >
-                            <UserPlus className="h-4 w-4" />
-                          </button>
-                          <button
-                            className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
-                            title="More"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => openTaskDetail(task)}
+                          className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -543,7 +587,10 @@ export default function TaskHubPage() {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 No field tasks for this period — create a task or expand the date range.
               </p>
-              <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+              >
                 <Plus className="h-4 w-4" />
                 Create Task
               </button>
@@ -564,6 +611,251 @@ export default function TaskHubPage() {
           onReject={handleRejectTask}
         />
       )}
+
+      {/* Create Task Modal */}
+      {showCreateModal && (
+        <CreateTaskModal
+          onClose={() => setShowCreateModal(false)}
+          onCreate={(newTask) => {
+            setTasks([newTask, ...tasks]);
+            setTaskResources((prev) => ({ ...prev, [newTask.id]: [] }));
+            setShowCreateModal(false);
+            showSuccess("Task created successfully");
+          }}
+          employees={Array.from(new Set(tasks.map((t) => t.employee_name).filter((n): n is string => !!n)))}
+          projects={uniqueProjects}
+          clients={mockClients}
+        />
+      )}
     </DashboardLayout>
+  );
+}
+
+// Create Task Modal Component
+function CreateTaskModal({
+  onClose,
+  onCreate,
+  employees,
+  projects,
+  clients,
+}: {
+  onClose: () => void;
+  onCreate: (task: Task) => void;
+  employees: string[];
+  projects: string[];
+  clients: typeof mockClients;
+}) {
+  const [formData, setFormData] = useState({
+    employee_name: "",
+    client_id: "",
+    project_name: "",
+    description: "",
+    date: new Date().toISOString().split("T")[0],
+    location: "",
+    time_taken_minutes: 0,
+    estimated_time_minutes: 0,
+    priority: "Medium" as TaskPriority,
+    status: "Open" as TaskStatus,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const selectedClient = clients.find(c => c.id === parseInt(formData.client_id));
+    
+    const newTask: Task = {
+      id: Math.max(...mockTasks.map((t) => t.id), 0) + 1,
+      employee_id: Math.floor(Math.random() * 1000),
+      employee_name: formData.employee_name,
+      client_id: selectedClient?.id,
+      client_name: selectedClient?.name,
+      project_id: Math.floor(Math.random() * 1000),
+      project_name: formData.project_name,
+      description: formData.description,
+      date: formData.date,
+      location: formData.location,
+      time_taken_minutes: formData.time_taken_minutes,
+      estimated_time_minutes: formData.estimated_time_minutes,
+      status: formData.status,
+      priority: formData.priority,
+      assigned_by: "Admin",
+      is_new: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    onCreate(newTask);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-800 p-6 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Task</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Employee */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Assign to Employee <span className="text-red-500">*</span>
+              </label>
+              <input
+                list="employees"
+                value={formData.employee_name}
+                onChange={(e) => setFormData({ ...formData, employee_name: e.target.value })}
+                placeholder="Select or type employee name"
+                required
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+              <datalist id="employees">
+                {employees.map((emp) => (
+                  <option key={emp} value={emp} />
+                ))}
+              </datalist>
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                required
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+
+            {/* Client */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Client <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.client_id}
+                onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                required
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              >
+                <option value="">Select client</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Project */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Project <span className="text-red-500">*</span>
+              </label>
+              <input
+                list="projects"
+                value={formData.project_name}
+                onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                placeholder="Select or type project name"
+                required
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+              <datalist id="projects">
+                {projects.map((proj) => (
+                  <option key={proj} value={proj} />
+                ))}
+              </datalist>
+            </div>
+
+            {/* Priority */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Priority
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+
+            {/* Estimated Time */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Estimated Time (minutes)
+              </label>
+              <input
+                type="number"
+                value={formData.estimated_time_minutes}
+                onChange={(e) => setFormData({ ...formData, estimated_time_minutes: parseInt(e.target.value) || 0 })}
+                min="0"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+              Location <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="Enter task location"
+              required
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+              Task Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe the task in detail..."
+              required
+              rows={4}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+            >
+              Create Task
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
