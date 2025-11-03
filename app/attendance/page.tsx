@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Search, Check, X as XIcon, ChevronLeft, ChevronRight, Download, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Calendar, Search, Check, X as XIcon, ChevronLeft, ChevronRight, Download, CheckCircle, XCircle, Clock, Edit2 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
-import { showConfirm, showSuccess, showAlert } from "@/lib/sweetalert";
+import { showConfirm, showSuccess } from "@/lib/sweetalert";
 
 type ApprovalStatus = "Pending" | "Approved" | "Rejected";
 
@@ -26,96 +26,124 @@ type AttendanceRecord = {
   rejection_reason?: string;
 };
 
+type Employee = {
+  id: number;
+  name: string;
+  employee_id: string;
+  status: "Active" | "On Leave" | "Terminated";
+};
+
+const mockEmployees: Employee[] = [
+  { id: 1, name: "Rajesh Kumar", employee_id: "EMP-001", status: "Active" },
+  { id: 2, name: "Priya Sharma", employee_id: "EMP-002", status: "Active" },
+  { id: 3, name: "Amit Patel", employee_id: "EMP-003", status: "Active" },
+  { id: 4, name: "Sunita Verma", employee_id: "EMP-004", status: "Active" },
+  { id: 5, name: "Vikram Singh", employee_id: "EMP-005", status: "Active" },
+  { id: 6, name: "Neha Gupta", employee_id: "EMP-006", status: "Active" },
+];
+
 const mockAttendance: AttendanceRecord[] = [
   {
     id: 1,
     employee_id: 1,
     employee_name: "Rajesh Kumar",
-    date: "2025-11-01",
+    date: format(new Date(), "yyyy-MM-dd"),
     status: "Present",
-    approval_status: "Approved",
+    approval_status: "Pending",
     check_in: "09:15",
     check_out: "18:30",
-    approved_by: "Admin",
-    approved_at: "2025-11-01T18:30:00Z",
   },
   {
     id: 2,
     employee_id: 2,
     employee_name: "Priya Sharma",
-    date: "2025-11-01",
+    date: format(new Date(), "yyyy-MM-dd"),
     status: "Present",
-    approval_status: "Approved",
+    approval_status: "Pending",
     check_in: "09:00",
     check_out: "18:00",
-    approved_by: "Admin",
-    approved_at: "2025-11-01T18:00:00Z",
   },
   {
     id: 3,
-    employee_id: 1,
-    employee_name: "Rajesh Kumar",
-    date: "2025-11-02",
-    status: "Present",
+    employee_id: 3,
+    employee_name: "Amit Patel",
+    date: format(new Date(), "yyyy-MM-dd"),
+    status: "Leave",
     approval_status: "Pending",
-    check_in: "09:10",
+    notes: "Medical leave",
   },
   {
     id: 4,
-    employee_id: 3,
-    employee_name: "Amit Patel",
-    date: "2025-11-01",
-    status: "Leave",
-    approval_status: "Approved",
-    notes: "Medical leave",
-    approved_by: "Admin",
-    approved_at: "2025-11-01T10:00:00Z",
-  },
-  {
-    id: 5,
-    employee_id: 2,
-    employee_name: "Priya Sharma",
-    date: "2025-11-02",
-    status: "Present",
-    approval_status: "Pending",
-    check_in: "09:05",
-    check_out: "17:55",
-  },
-  {
-    id: 6,
     employee_id: 4,
     employee_name: "Sunita Verma",
     date: "2025-11-02",
+    status: "Present",
+    approval_status: "Approved",
+    check_in: "09:00",
+    check_out: "18:15",
+    approved_by: "Admin",
+    approved_at: "2025-11-02T18:30:00Z",
+  },
+  {
+    id: 5,
+    employee_id: 5,
+    employee_name: "Vikram Singh",
+    date: "2025-11-02",
     status: "Half Day",
-    approval_status: "Rejected",
+    approval_status: "Approved",
     check_in: "09:00",
     check_out: "13:00",
     notes: "Personal work",
     approved_by: "Admin",
     approved_at: "2025-11-02T13:30:00Z",
-    rejection_reason: "Insufficient notice",
   },
 ];
 
 export default function AttendancePage() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(mockAttendance);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
   const [approvalFilter, setApprovalFilter] = useState<ApprovalStatus | "All">("All");
   const [showMarkModal, setShowMarkModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
+  const [workingDaysPerMonth] = useState(26);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  const filteredAttendance = attendance.filter(record => {
-    const recordDate = new Date(record.date);
-    const matchesMonth = isSameMonth(recordDate, currentMonth);
-    const matchesSearch = searchQuery === "" || record.employee_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesApproval = approvalFilter === "All" || record.approval_status === approvalFilter;
-    return matchesMonth && matchesSearch && matchesApproval;
-  });
+  const filteredAttendance = useMemo(() => {
+    return attendance.filter(record => {
+      const recordDate = new Date(record.date);
+      const matchesMonth = isSameMonth(recordDate, currentMonth);
+      const matchesDate = !selectedDate || record.date === selectedDate;
+      const matchesSearch = searchQuery === "" || record.employee_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesApproval = approvalFilter === "All" || record.approval_status === approvalFilter;
+      return matchesMonth && matchesDate && matchesSearch && matchesApproval;
+    });
+  }, [attendance, currentMonth, selectedDate, searchQuery, approvalFilter]);
+
+  const activeEmployees = useMemo(() => {
+    return mockEmployees.filter(emp => emp.status === "Active");
+  }, []);
+
+  const stats = useMemo(() => {
+    const monthRecords = attendance.filter(r => isSameMonth(new Date(r.date), currentMonth));
+    const uniqueEmployeePresent = new Set(monthRecords.filter(r => r.status === "Present" && r.approval_status === "Approved").map(r => r.employee_id)).size;
+    const uniqueEmployeeAbsent = new Set(monthRecords.filter(r => r.status === "Absent").map(r => r.employee_id)).size;
+    const uniqueEmployeeLeave = new Set(monthRecords.filter(r => r.status === "Leave" && r.approval_status === "Approved").map(r => r.employee_id)).size;
+    
+    return {
+      workingDays: workingDaysPerMonth,
+      present: uniqueEmployeePresent,
+      absent: uniqueEmployeeAbsent,
+      leave: uniqueEmployeeLeave,
+      pending: monthRecords.filter(r => r.approval_status === "Pending").length,
+    };
+  }, [attendance, currentMonth, workingDaysPerMonth]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -130,14 +158,6 @@ export default function AttendancePage() {
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
     }
-  };
-
-  const stats = {
-    totalDays: monthDays.length,
-    present: filteredAttendance.filter(r => r.status === "Present").length,
-    absent: filteredAttendance.filter(r => r.status === "Absent").length,
-    leave: filteredAttendance.filter(r => r.status === "Leave").length,
-    pending: attendance.filter(r => r.approval_status === "Pending" && isSameMonth(new Date(r.date), currentMonth)).length,
   };
 
   const handleApprove = async (record: AttendanceRecord) => {
@@ -231,29 +251,30 @@ export default function AttendancePage() {
     }
   };
 
-  const handleExportReport = () => {
-    const csvContent = [
-      ["Date", "Employee", "Status", "Check In", "Check Out", "Notes", "Approved By"].join(","),
-      ...filteredAttendance.map(record => [
-        record.date,
-        record.employee_name,
-        record.status,
-        record.check_in || "",
-        record.check_out || "",
-        record.notes || "",
-        record.approved_by || ""
-      ].join(","))
-    ].join("\n");
+  const handleEdit = (record: AttendanceRecord) => {
+    setEditingRecord(record);
+    setShowMarkModal(true);
+  };
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `attendance-${format(currentMonth, "yyyy-MM")}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleSaveAttendance = (record: AttendanceRecord) => {
+    if (editingRecord) {
+      setAttendance(prev => prev.map(r => r.id === editingRecord.id ? record : r));
+      showSuccess("Attendance updated successfully");
+    } else {
+      const existingIndex = attendance.findIndex(
+        r => r.employee_id === record.employee_id && r.date === record.date
+      );
+      
+      if (existingIndex >= 0) {
+        setAttendance(prev => prev.map((r, idx) => idx === existingIndex ? { ...record, id: r.id } : r));
+        showSuccess("Attendance record replaced successfully");
+      } else {
+        setAttendance(prev => [record, ...prev]);
+        showSuccess("Attendance marked successfully");
+      }
+    }
+    setShowMarkModal(false);
+    setEditingRecord(null);
   };
 
   return (
@@ -261,15 +282,15 @@ export default function AttendancePage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Attendance Management</h2>
-            <p className="text-gray-500 dark:text-gray-400">Track daily attendance and approvals</p>
+            <h2 className="text-2xl font-bold dark:text-white">Attendance Management</h2>
+            <p className="text-gray-500 dark:text-gray-400">Track daily attendance and approvals for employees</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={handleExportReport}>
+            <Button variant="secondary" onClick={() => setShowExportModal(true)}>
               <Download className="h-4 w-4 mr-2" />
               Export Report
             </Button>
-            <Button onClick={() => setShowMarkModal(true)}>
+            <Button onClick={() => { setEditingRecord(null); setShowMarkModal(true); }}>
               <Calendar className="h-4 w-4 mr-2" />
               Mark Attendance
             </Button>
@@ -277,29 +298,29 @@ export default function AttendancePage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-5">
-          <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
-            <div className="text-sm text-gray-500 dark:text-gray-400">Working Days</div>
-            <div className="text-2xl font-bold mt-1">{stats.totalDays}</div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Working Days (Monthly)</div>
+            <div className="text-2xl font-bold mt-1 dark:text-white">{stats.workingDays}</div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
-            <div className="text-sm text-gray-500 dark:text-gray-400">Present</div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Employees Present</div>
             <div className="text-2xl font-bold mt-1 text-green-600">{stats.present}</div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">Absent</div>
             <div className="text-2xl font-bold mt-1 text-red-600">{stats.absent}</div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">On Leave</div>
             <div className="text-2xl font-bold mt-1 text-blue-600">{stats.leave}</div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">Pending Approval</div>
             <div className="text-2xl font-bold mt-1 text-yellow-600">{stats.pending}</div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -308,7 +329,7 @@ export default function AttendancePage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-lg font-semibold">
+            <span className="text-lg font-semibold dark:text-white">
               {format(currentMonth, "MMMM yyyy")}
             </span>
             <Button
@@ -320,7 +341,33 @@ export default function AttendancePage() {
             </Button>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium dark:text-gray-300">Date:</label>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-40"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedDate(format(new Date(), "yyyy-MM-dd"))}
+              >
+                Today
+              </Button>
+              {selectedDate && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedDate("")}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
               <Input
@@ -335,7 +382,7 @@ export default function AttendancePage() {
             <select
               value={approvalFilter}
               onChange={(e) => setApprovalFilter(e.target.value as any)}
-              className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+              className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-gray-200"
             >
               <option value="All">All Approvals</option>
               <option value="Pending">Pending</option>
@@ -343,7 +390,7 @@ export default function AttendancePage() {
               <option value="Rejected">Rejected</option>
             </select>
 
-            <div className="flex rounded-lg border">
+            <div className="flex rounded-lg border border-gray-300 dark:border-gray-700">
               <Button
                 variant={viewMode === "list" ? "default" : "ghost"}
                 size="sm"
@@ -363,108 +410,129 @@ export default function AttendancePage() {
         </div>
 
         {viewMode === "list" ? (
-          <div className="bg-white dark:bg-gray-900 rounded-lg border overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-              <thead className="bg-gray-50 dark:bg-gray-800/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Employee
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Check In
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Check Out
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Notes
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Approval Status
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {filteredAttendance.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="px-6 py-4 text-sm font-medium">
-                      {format(new Date(record.date), "MMM dd, yyyy")}
-                    </td>
-                    <td className="px-6 py-4 text-sm">{record.employee_name}</td>
-                    <td className="px-6 py-4">
-                      <Badge className={getStatusColor(record.status)}>
-                        {record.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {record.check_in || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {record.check_out || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {record.notes || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center">
-                        <Badge className={`inline-flex items-center gap-1 ${getApprovalStatusColor(record.approval_status)}`}>
-                          {getApprovalIcon(record.approval_status)}
-                          {record.approval_status}
-                        </Badge>
-                      </div>
-                      {record.rejection_reason && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Reason: {record.rejection_reason}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {record.approval_status === "Pending" ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleApprove(record)}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            title="Approve"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleReject(record)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Reject"
-                          >
-                            <XIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="text-center text-xs text-gray-500">
-                          {record.approved_by && `By ${record.approved_by}`}
-                        </div>
-                      )}
-                    </td>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Employee
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Check In
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Check Out
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Notes
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Approval Status
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredAttendance.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                        No attendance records found
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAttendance.map((record) => (
+                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <td className="px-6 py-4 text-sm font-medium dark:text-gray-200">
+                          {format(new Date(record.date), "MMM dd, yyyy")}
+                        </td>
+                        <td className="px-6 py-4 text-sm dark:text-gray-300">{record.employee_name}</td>
+                        <td className="px-6 py-4">
+                          <Badge className={getStatusColor(record.status)}>
+                            {record.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                          {record.check_in || "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                          {record.check_out || "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                          {record.notes || "-"}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center">
+                            <Badge className={`inline-flex items-center gap-1 ${getApprovalStatusColor(record.approval_status)}`}>
+                              {getApprovalIcon(record.approval_status)}
+                              {record.approval_status}
+                            </Badge>
+                          </div>
+                          {record.rejection_reason && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Reason: {record.rejection_reason}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            {record.approval_status === "Pending" ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleApprove(record)}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  title="Approve"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleReject(record)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  title="Reject"
+                                >
+                                  <XIcon className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+                                {record.approved_by && `By ${record.approved_by}`}
+                              </div>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(record)}
+                              className="text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/20"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-lg border p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div className="grid grid-cols-7 gap-2">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                <div key={day} className="text-center text-sm font-medium text-gray-500 p-2">
+                <div key={day} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-2">
                   {day}
                 </div>
               ))}
@@ -472,13 +540,14 @@ export default function AttendancePage() {
                 const dayAttendance = attendance.filter(r => isSameDay(new Date(r.date), day));
                 const presentCount = dayAttendance.filter(r => r.status === "Present").length;
                 const absentCount = dayAttendance.filter(r => r.status === "Absent").length;
+                const leaveCount = dayAttendance.filter(r => r.status === "Leave").length;
 
                 return (
                   <div
                     key={idx}
-                    className="border dark:border-gray-800 rounded-lg p-2 min-h-[80px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="border dark:border-gray-700 rounded-lg p-2 min-h-[80px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
-                    <div className="text-sm font-medium mb-1">{format(day, "d")}</div>
+                    <div className="text-sm font-medium mb-1 dark:text-gray-200">{format(day, "d")}</div>
                     {dayAttendance.length > 0 && (
                       <div className="space-y-1 text-xs">
                         {presentCount > 0 && (
@@ -486,6 +555,9 @@ export default function AttendancePage() {
                         )}
                         {absentCount > 0 && (
                           <div className="text-red-600">✗ {absentCount}</div>
+                        )}
+                        {leaveCount > 0 && (
+                          <div className="text-blue-600">L {leaveCount}</div>
                         )}
                       </div>
                     )}
@@ -499,72 +571,120 @@ export default function AttendancePage() {
 
       {showMarkModal && (
         <MarkAttendanceModal
-          onClose={() => setShowMarkModal(false)}
-          onSave={(record) => {
-            setAttendance(prev => [record, ...prev]);
+          employees={activeEmployees}
+          editingRecord={editingRecord}
+          onClose={() => {
             setShowMarkModal(false);
+            setEditingRecord(null);
           }}
+          onSave={handleSaveAttendance}
+        />
+      )}
+
+      {showExportModal && (
+        <ExportReportModal
+          onClose={() => setShowExportModal(false)}
+          attendance={attendance}
         />
       )}
     </DashboardLayout>
   );
 }
 
-function MarkAttendanceModal({ onClose, onSave }: {
+function MarkAttendanceModal({ 
+  employees, 
+  editingRecord,
+  onClose, 
+  onSave 
+}: {
+  employees: Employee[];
+  editingRecord: AttendanceRecord | null;
   onClose: () => void;
   onSave: (record: AttendanceRecord) => void;
 }) {
   const [formData, setFormData] = useState({
-    employee_name: "",
-    date: new Date().toISOString().split('T')[0],
-    status: "Present" as AttendanceRecord["status"],
-    check_in: "",
-    check_out: "",
-    notes: "",
+    employee_id: editingRecord?.employee_id || 0,
+    employee_name: editingRecord?.employee_name || "",
+    date: editingRecord?.date || format(new Date(), "yyyy-MM-dd"),
+    status: editingRecord?.status || ("Present" as AttendanceRecord["status"]),
+    check_in: editingRecord?.check_in || "",
+    check_out: editingRecord?.check_out || "",
+    notes: editingRecord?.notes || "",
   });
+
+  const handleEmployeeChange = (employeeId: number) => {
+    const employee = employees.find(e => e.id === employeeId);
+    if (employee) {
+      setFormData(prev => ({
+        ...prev,
+        employee_id: employee.id,
+        employee_name: employee.name,
+      }));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.employee_id) {
+      alert("Please select an employee");
+      return;
+    }
+
     const newRecord: AttendanceRecord = {
-      id: Date.now(),
-      employee_id: Math.floor(Math.random() * 100),
+      id: editingRecord?.id || Date.now(),
+      employee_id: formData.employee_id,
       employee_name: formData.employee_name,
       date: formData.date,
       status: formData.status,
-      approval_status: "Approved",
+      approval_status: editingRecord ? editingRecord.approval_status : "Approved",
       check_in: formData.check_in || undefined,
       check_out: formData.check_out || undefined,
       notes: formData.notes || undefined,
-      approved_by: "Admin",
-      approved_at: new Date().toISOString(),
+      approved_by: editingRecord?.approved_by || "Admin",
+      approved_at: editingRecord?.approved_at || new Date().toISOString(),
     };
     onSave(newRecord);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
-          <h2 className="text-xl font-semibold">Mark Attendance</h2>
-          <button onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+          <h2 className="text-xl font-semibold dark:text-white">
+            {editingRecord ? "Edit Attendance" : "Mark Attendance"}
+          </h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <XIcon className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Employee Name <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Employee <span className="text-red-500">*</span>
             </label>
-            <Input
-              value={formData.employee_name}
-              onChange={(e) => setFormData({ ...formData, employee_name: e.target.value })}
-              placeholder="Enter employee name"
+            <select
+              value={formData.employee_id}
+              onChange={(e) => handleEmployeeChange(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
               required
-            />
+            >
+              <option value={0}>Select Employee</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name} ({emp.employee_id})
+                </option>
+              ))}
+            </select>
+            {!editingRecord && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                If a record exists for this employee on the selected date, it will be replaced.
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
               Date <span className="text-red-500">*</span>
             </label>
             <Input
@@ -575,11 +695,11 @@ function MarkAttendanceModal({ onClose, onSave }: {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Status</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Status</label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
             >
               <option value="Present">Present</option>
               <option value="Absent">Absent</option>
@@ -589,7 +709,7 @@ function MarkAttendanceModal({ onClose, onSave }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Check In</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Check In</label>
               <Input
                 type="time"
                 value={formData.check_in}
@@ -597,7 +717,7 @@ function MarkAttendanceModal({ onClose, onSave }: {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Check Out</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Check Out</label>
               <Input
                 type="time"
                 value={formData.check_out}
@@ -606,25 +726,149 @@ function MarkAttendanceModal({ onClose, onSave }: {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Notes</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-              placeholder="Optional notes"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
+              placeholder="Additional notes..."
             />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              {editingRecord ? "Update Attendance" : "Mark Attendance"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ExportReportModal({
+  onClose,
+  attendance,
+}: {
+  onClose: () => void;
+  attendance: AttendanceRecord[];
+}) {
+  const currentYear = new Date().getFullYear();
+  const [exportMonth, setExportMonth] = useState(new Date().getMonth() + 1);
+  const [exportYear, setExportYear] = useState(currentYear);
+
+  const months = [
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
+    { value: 12, label: "December" },
+  ];
+
+  const years = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
+
+  const handleExport = () => {
+    const filteredRecords = attendance.filter(record => {
+      const recordDate = new Date(record.date);
+      return recordDate.getMonth() + 1 === exportMonth && recordDate.getFullYear() === exportYear;
+    });
+
+    const escapeCSV = (value: string) => {
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    const csvContent = [
+      ["Date", "Employee", "Status", "Check In", "Check Out", "Notes", "Approval Status", "Approved By"].join(","),
+      ...filteredRecords.map(record => [
+        record.date,
+        escapeCSV(record.employee_name),
+        record.status,
+        record.check_in || "",
+        record.check_out || "",
+        escapeCSV(record.notes || ""),
+        record.approval_status,
+        escapeCSV(record.approved_by || "")
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `attendance-${exportYear}-${String(exportMonth).padStart(2, "0")}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showSuccess("Report exported successfully");
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+          <h2 className="text-xl font-semibold dark:text-white">Export Attendance Report</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <XIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Month</label>
+            <select
+              value={exportMonth}
+              onChange={(e) => setExportMonth(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
+            >
+              {months.map(month => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Year</label>
+            <select
+              value={exportYear}
+              onChange={(e) => setExportYear(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
+            >
+              {years.map(year => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">
-              Save Attendance
+            <Button onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
             </Button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
