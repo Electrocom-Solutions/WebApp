@@ -95,7 +95,22 @@ The frontend is designed to match the database schema provided in the requiremen
 - ✅ **Task Module**: Status and priority filters, CSV export
 - ✅ **Project Module**: Client dropdown integration
 - ✅ **Contract Workers**: Emergency contact, bank details, PF/ESI fields with scrollable modal
-- ✅ **Attendance Module**: Approval workflow (Pending/Approved/Rejected), approve/reject actions, filters, stats
+- ✅ **Attendance Module**: Complete employee attendance management with:
+  - Employees only (not contract workers)
+  - Approval workflow: Pending → Approved/Rejected with reason
+  - Date filter with current date default, "Today" and "Clear" buttons
+  - Month navigation for viewing historical records
+  - Search by employee name
+  - Approval status filter (All, Pending, Approved, Rejected)
+  - List and Calendar view toggle
+  - Manual attendance marking with employee dropdown
+  - Replace logic: if record exists for employee+date, it replaces
+  - Edit button for each record (owner can modify any attendance)
+  - Stats: Working Days (26 default), Employees Present, Absent, On Leave, Pending Approval
+  - Export Report modal with month/year selection
+  - CSV export with all attendance data
+  - Full dark theme and SweetAlert2 integration
+  - Proper approval metadata (only set when actually approved)
 - ✅ **Payment Tracking Module**: Complete contract worker payment tracking with:
   - Month and year filters (defaults to current month/year)
   - Upload Excel sheet feature for bulk payment records
