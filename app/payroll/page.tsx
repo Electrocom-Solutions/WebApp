@@ -27,6 +27,7 @@ export default function PayrollPage() {
   const [periodStart, setPeriodStart] = useState("2025-10-01");
   const [periodEnd, setPeriodEnd] = useState("2025-10-31");
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | "all">("all");
+  const [employeeTypeFilter, setEmployeeTypeFilter] = useState<"all" | "Employee" | "Contract Worker">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecords, setSelectedRecords] = useState<number[]>([]);
   const [selectedPayroll, setSelectedPayroll] = useState<PayrollRecord | null>(null);
@@ -41,13 +42,14 @@ export default function PayrollPage() {
       
       const inPeriod = recordStart >= filterStart && recordStart <= filterEnd;
       const matchesStatus = statusFilter === "all" || record.payment_status === statusFilter;
+      const matchesEmployeeType = employeeTypeFilter === "all" || record.employee_type === employeeTypeFilter;
       const matchesSearch =
         searchQuery === "" ||
         record.employee_name.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return inPeriod && matchesStatus && matchesSearch;
+      return inPeriod && matchesStatus && matchesEmployeeType && matchesSearch;
     });
-  }, [payrollRecords, periodStart, periodEnd, statusFilter, searchQuery]);
+  }, [payrollRecords, periodStart, periodEnd, statusFilter, employeeTypeFilter, searchQuery]);
 
   const stats = useMemo(() => {
     const employeeRecords = filteredRecords.filter((r) => r.employee_type === "Employee");
@@ -74,7 +76,7 @@ export default function PayrollPage() {
     setShowMarkPaidModal(true);
   };
 
-  const handleMarkPaidSubmit = (paymentMode: PaymentMode, bankRef: string, paymentDate: string) => {
+  const handleMarkPaidSubmit = async (paymentMode: PaymentMode, bankRef: string, paymentDate: string) => {
     if (!selectedPayroll) return;
 
     setPayrollRecords((prev) =>
@@ -90,6 +92,9 @@ export default function PayrollPage() {
           : record
       )
     );
+
+    setShowMarkPaidModal(false);
+    await showSuccess("Success", `Payroll for ${selectedPayroll.employee_name} marked as paid!`);
   };
 
   const handleRecalculate = (recordId: number) => {
@@ -152,6 +157,44 @@ export default function PayrollPage() {
     const count = selectedRecords.length;
     setSelectedRecords([]);
     await showSuccess("Success", `Successfully marked ${count} payroll record(s) as paid!`);
+  };
+
+  const handleExportCSV = () => {
+    const escapeCSV = (value: any) => {
+      const str = String(value);
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const headers = ["Period", "Employee", "Type", "Working Days", "Present", "Gross", "Deductions", "Net Amount", "Status", "Payment Mode", "Payment Date"];
+    const rows = filteredRecords.map((record) => [
+      format(new Date(record.period_start), "MMM yyyy"),
+      record.employee_name,
+      record.employee_type,
+      record.working_days,
+      record.days_present,
+      record.computation_details?.gross_amount || 0,
+      record.computation_details?.total_deductions || 0,
+      record.computation_details?.net_amount || 0,
+      record.payment_status,
+      record.payment_mode || "-",
+      record.payment_date ? format(new Date(record.payment_date), "dd/MM/yyyy") : "-",
+    ]);
+
+    const csvContent = [
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) => row.map(escapeCSV).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `payroll-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const getStatusColor = (status: PaymentStatus) => {
@@ -280,6 +323,15 @@ export default function PayrollPage() {
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-400" />
             <select
+              value={employeeTypeFilter}
+              onChange={(e) => setEmployeeTypeFilter(e.target.value as any)}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="all">All Types</option>
+              <option value="Employee">Employee</option>
+              <option value="Contract Worker">Contract Worker</option>
+            </select>
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as PaymentStatus | "all")}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -289,6 +341,13 @@ export default function PayrollPage() {
               <option value="Paid">Paid</option>
               <option value="Hold">Hold</option>
             </select>
+            <button
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </button>
           </div>
         </div>
 
@@ -307,28 +366,19 @@ export default function PayrollPage() {
                     />
                   </th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Name
+                    Employee
                   </th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Type
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Working Days
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Days Present
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Gross
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Deductions
                   </th>
                   <th scope="col" className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Net Amount
                   </th>
                   <th scope="col" className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Payment Status
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Payment Mode
                   </th>
                   <th scope="col" className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Actions
@@ -350,27 +400,12 @@ export default function PayrollPage() {
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">{record.employee_name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {format(new Date(record.period_start), "MMM yyyy")}
+                          {format(new Date(record.period_start), "MMM yyyy")} • {record.days_present}/{record.working_days} days
                         </p>
                       </div>
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
                       {record.employee_type}
-                    </td>
-                    <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-white">
-                      {record.working_days}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{record.days_present}</span>
-                      {record.days_absent > 0 && (
-                        <span className="ml-1 text-xs text-red-600 dark:text-red-400">(-{record.days_absent})</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-right text-sm font-medium text-gray-900 dark:text-white">
-                      ₹{record.computation_details?.gross_amount?.toLocaleString("en-IN") || 0}
-                    </td>
-                    <td className="px-4 py-4 text-right text-sm font-medium text-red-600 dark:text-red-400">
-                      ₹{record.computation_details?.total_deductions?.toLocaleString("en-IN") || 0}
                     </td>
                     <td className="px-4 py-4 text-right text-sm font-bold text-gray-900 dark:text-white">
                       ₹{record.computation_details?.net_amount?.toLocaleString("en-IN") || 0}
@@ -379,6 +414,9 @@ export default function PayrollPage() {
                       <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(record.payment_status)}`}>
                         {record.payment_status}
                       </span>
+                    </td>
+                    <td className="px-4 py-4 text-center text-sm text-gray-700 dark:text-gray-300">
+                      {record.payment_mode || "-"}
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-1">
