@@ -9,6 +9,7 @@ import { Search, Plus, Eye, Edit, Trash2, X } from "lucide-react";
 import { Project } from "@/types";
 import { cn } from "@/lib/utils";
 import { showDeleteConfirm, showAlert } from "@/lib/sweetalert";
+import { mockClients, getClientById } from "@/lib/mock-data/clients";
 
 const mockProjects: Project[] = [
   {
@@ -117,6 +118,11 @@ export default function ProjectsPage() {
                       {project.status}
                     </span>
                   </div>
+                  {project.client_id && (
+                    <p className="text-sm text-sky-600 dark:text-sky-400 mt-1">
+                      Client: {getClientById(project.client_id)?.name || `Client #${project.client_id}`}
+                    </p>
+                  )}
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     {project.description}
                   </p>
@@ -190,6 +196,7 @@ function ProjectModal({
   onSave: (project: Project) => void;
 }) {
   const [name, setName] = useState(project?.name || "");
+  const [clientId, setClientId] = useState(project?.client_id || mockClients[0]?.id || 1);
   const [description, setDescription] = useState(project?.description || "");
   const [startDate, setStartDate] = useState(project?.start_date || "");
   const [endDate, setEndDate] = useState(project?.end_date || "");
@@ -199,7 +206,7 @@ function ProjectModal({
     e.preventDefault();
     const savedProject: Project = {
       id: project?.id || Date.now(),
-      client_id: project?.client_id || 1,
+      client_id: clientId,
       name,
       description,
       start_date: startDate,
@@ -224,6 +231,24 @@ function ProjectModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Client <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={clientId}
+              onChange={(e) => setClientId(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+              required
+            >
+              {mockClients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-2">
               Project Name <span className="text-red-500">*</span>

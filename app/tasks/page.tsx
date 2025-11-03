@@ -196,10 +196,10 @@ export default function TaskHubPage() {
     const headers = ["Date", "Employee", "Client/Project", "Description", "Time (hrs)", "Status", "Resource Cost"];
     const rows = filteredTasks.map((task) => [
       format(new Date(task.date), "dd/MM/yyyy"),
-      task.employee_name,
+      task.employee_name || "-",
       task.client_name || task.project_name || "-",
       task.description,
-      task.time_spent?.toString() || "0",
+      (task.time_taken_minutes / 60).toFixed(2),
       task.status,
       `₹${calculateTaskResourceCostFromState(task.id).toLocaleString("en-IN")}`,
     ]);
