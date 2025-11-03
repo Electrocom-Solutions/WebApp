@@ -171,7 +171,7 @@ export default function ContractWorkersPage() {
             </div>
           </div>
           <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
-            <div className="text-sm text-gray-500 dark:text-gray-400">Total Salaries</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">Total of All Salaries</div>
             <div className="text-2xl font-bold mt-1 text-sky-600">
               ₹{workers.reduce((sum, w) => sum + w.monthly_salary, 0).toLocaleString('en-IN')}
             </div>
@@ -432,7 +432,7 @@ function WorkerModal({ worker, onClose, onSave }: {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Monthly Salary (₹) <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Monthly Salary (₹) <span className="text-red-500">*</span></label>
               <Input
                 type="number"
                 value={formData.monthly_salary}
