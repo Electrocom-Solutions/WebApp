@@ -18,6 +18,14 @@ type ContractWorker = {
   address?: string;
   assigned_to?: string;
   status: "Available" | "Assigned" | "Inactive";
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relation?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_ifsc?: string;
+  pf_number?: string;
+  esi_number?: string;
   created_at: string;
 };
 
@@ -31,6 +39,14 @@ const mockWorkers: ContractWorker[] = [
     daily_rate: 800,
     address: "Andheri, Mumbai",
     status: "Available",
+    emergency_contact_name: "Sita Prakash",
+    emergency_contact_phone: "+91 98765 11112",
+    emergency_contact_relation: "Wife",
+    bank_name: "State Bank of India",
+    bank_account_number: "1234567890",
+    bank_ifsc: "SBIN0001234",
+    pf_number: "MH/MUM/12345/67890",
+    esi_number: "1234567890123456",
     created_at: "2025-01-01T00:00:00Z",
   },
   {
@@ -43,6 +59,9 @@ const mockWorkers: ContractWorker[] = [
     address: "Thane, Mumbai",
     assigned_to: "BSNL Network Project",
     status: "Assigned",
+    bank_name: "HDFC Bank",
+    bank_account_number: "0987654321",
+    bank_ifsc: "HDFC0001234",
     created_at: "2025-01-05T00:00:00Z",
   },
   {
@@ -321,6 +340,14 @@ function WorkerModal({ worker, onClose, onSave }: {
     address: worker?.address || "",
     assigned_to: worker?.assigned_to || "",
     status: worker?.status || "Available",
+    emergency_contact_name: worker?.emergency_contact_name || "",
+    emergency_contact_phone: worker?.emergency_contact_phone || "",
+    emergency_contact_relation: worker?.emergency_contact_relation || "",
+    bank_name: worker?.bank_name || "",
+    bank_account_number: worker?.bank_account_number || "",
+    bank_ifsc: worker?.bank_ifsc || "",
+    pf_number: worker?.pf_number || "",
+    esi_number: worker?.esi_number || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -336,8 +363,8 @@ function WorkerModal({ worker, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
           <h2 className="text-xl font-semibold">
             {worker ? "Edit Worker" : "Add Worker"}
           </h2>
@@ -346,7 +373,7 @@ function WorkerModal({ worker, onClose, onSave }: {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-2">
@@ -422,7 +449,89 @@ function WorkerModal({ worker, onClose, onSave }: {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="border-t dark:border-gray-800 pt-4">
+            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Emergency Contact</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Contact Name</label>
+                <Input
+                  value={formData.emergency_contact_name}
+                  onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                  placeholder="Emergency contact name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Contact Phone</label>
+                <Input
+                  value={formData.emergency_contact_phone}
+                  onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                  placeholder="+91 XXXXX XXXXX"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-2">Relation</label>
+                <Input
+                  value={formData.emergency_contact_relation}
+                  onChange={(e) => setFormData({ ...formData, emergency_contact_relation: e.target.value })}
+                  placeholder="e.g., Spouse, Parent, Sibling"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t dark:border-gray-800 pt-4">
+            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Bank Details</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-2">Bank Name</label>
+                <Input
+                  value={formData.bank_name}
+                  onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                  placeholder="e.g., State Bank of India"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Account Number</label>
+                <Input
+                  value={formData.bank_account_number}
+                  onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
+                  placeholder="Account number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">IFSC Code</label>
+                <Input
+                  value={formData.bank_ifsc}
+                  onChange={(e) => setFormData({ ...formData, bank_ifsc: e.target.value })}
+                  placeholder="e.g., SBIN0001234"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t dark:border-gray-800 pt-4">
+            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">PF & ESI Details</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">PF Number</label>
+                <Input
+                  value={formData.pf_number}
+                  onChange={(e) => setFormData({ ...formData, pf_number: e.target.value })}
+                  placeholder="PF number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">ESI Number</label>
+                <Input
+                  value={formData.esi_number}
+                  onChange={(e) => setFormData({ ...formData, esi_number: e.target.value })}
+                  placeholder="ESI number"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-800">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

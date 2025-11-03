@@ -143,6 +143,17 @@ export type ContractWorker = {
   monthly_salary: number;
   aadhar_no: string;
   uan_number?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relation?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_ifsc?: string;
+  pf_number?: string;
+  esi_number?: string;
   created_at: string;
   updated_at: string;
 };

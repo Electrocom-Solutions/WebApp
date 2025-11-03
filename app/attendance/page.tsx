@@ -5,8 +5,11 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Search, Check, X as XIcon, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Calendar, Search, Check, X as XIcon, ChevronLeft, ChevronRight, Download, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
+import { showConfirm, showSuccess, showAlert } from "@/lib/sweetalert";
+
+type ApprovalStatus = "Pending" | "Approved" | "Rejected";
 
 type AttendanceRecord = {
   id: number;
@@ -14,11 +17,13 @@ type AttendanceRecord = {
   employee_name: string;
   date: string;
   status: "Present" | "Absent" | "Leave" | "Half Day";
+  approval_status: ApprovalStatus;
   check_in?: string;
   check_out?: string;
   notes?: string;
   approved_by?: string;
   approved_at?: string;
+  rejection_reason?: string;
 };
 
 const mockAttendance: AttendanceRecord[] = [
@@ -28,6 +33,7 @@ const mockAttendance: AttendanceRecord[] = [
     employee_name: "Rajesh Kumar",
     date: "2025-11-01",
     status: "Present",
+    approval_status: "Approved",
     check_in: "09:15",
     check_out: "18:30",
     approved_by: "Admin",
@@ -39,6 +45,7 @@ const mockAttendance: AttendanceRecord[] = [
     employee_name: "Priya Sharma",
     date: "2025-11-01",
     status: "Present",
+    approval_status: "Approved",
     check_in: "09:00",
     check_out: "18:00",
     approved_by: "Admin",
@@ -50,9 +57,8 @@ const mockAttendance: AttendanceRecord[] = [
     employee_name: "Rajesh Kumar",
     date: "2025-11-02",
     status: "Present",
+    approval_status: "Pending",
     check_in: "09:10",
-    approved_by: "Admin",
-    approved_at: "2025-11-02T09:10:00Z",
   },
   {
     id: 4,
@@ -60,7 +66,34 @@ const mockAttendance: AttendanceRecord[] = [
     employee_name: "Amit Patel",
     date: "2025-11-01",
     status: "Leave",
+    approval_status: "Approved",
     notes: "Medical leave",
+    approved_by: "Admin",
+    approved_at: "2025-11-01T10:00:00Z",
+  },
+  {
+    id: 5,
+    employee_id: 2,
+    employee_name: "Priya Sharma",
+    date: "2025-11-02",
+    status: "Present",
+    approval_status: "Pending",
+    check_in: "09:05",
+    check_out: "17:55",
+  },
+  {
+    id: 6,
+    employee_id: 4,
+    employee_name: "Sunita Verma",
+    date: "2025-11-02",
+    status: "Half Day",
+    approval_status: "Rejected",
+    check_in: "09:00",
+    check_out: "13:00",
+    notes: "Personal work",
+    approved_by: "Admin",
+    approved_at: "2025-11-02T13:30:00Z",
+    rejection_reason: "Insufficient notice",
   },
 ];
 
@@ -69,6 +102,7 @@ export default function AttendancePage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
+  const [approvalFilter, setApprovalFilter] = useState<ApprovalStatus | "All">("All");
   const [showMarkModal, setShowMarkModal] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
@@ -77,8 +111,10 @@ export default function AttendancePage() {
 
   const filteredAttendance = attendance.filter(record => {
     const recordDate = new Date(record.date);
-    return isSameMonth(recordDate, currentMonth) &&
-      (searchQuery === "" || record.employee_name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesMonth = isSameMonth(recordDate, currentMonth);
+    const matchesSearch = searchQuery === "" || record.employee_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesApproval = approvalFilter === "All" || record.approval_status === approvalFilter;
+    return matchesMonth && matchesSearch && matchesApproval;
   });
 
   const getStatusColor = (status: string) => {
@@ -101,6 +137,98 @@ export default function AttendancePage() {
     present: filteredAttendance.filter(r => r.status === "Present").length,
     absent: filteredAttendance.filter(r => r.status === "Absent").length,
     leave: filteredAttendance.filter(r => r.status === "Leave").length,
+    pending: attendance.filter(r => r.approval_status === "Pending" && isSameMonth(new Date(r.date), currentMonth)).length,
+  };
+
+  const handleApprove = async (record: AttendanceRecord) => {
+    const confirmed = await showConfirm(
+      "Approve Attendance",
+      `Approve attendance for ${record.employee_name} on ${format(new Date(record.date), "dd MMM yyyy")}?`,
+      "Approve",
+      "Cancel"
+    );
+
+    if (!confirmed) return;
+
+    setAttendance(prev => prev.map(r =>
+      r.id === record.id
+        ? {
+            ...r,
+            approval_status: "Approved" as ApprovalStatus,
+            approved_by: "Admin",
+            approved_at: new Date().toISOString(),
+          }
+        : r
+    ));
+
+    await showSuccess("Attendance approved successfully");
+  };
+
+  const handleReject = async (record: AttendanceRecord) => {
+    const { default: Swal } = await import("sweetalert2");
+    
+    const result = await Swal.fire({
+      title: "Reject Attendance",
+      text: "Enter rejection reason:",
+      icon: "warning",
+      input: "text",
+      inputPlaceholder: "Reason for rejection",
+      showCancelButton: true,
+      confirmButtonText: "Reject",
+      cancelButtonText: "Cancel",
+      inputValidator: (value) => {
+        if (!value) {
+          return "Please enter a reason";
+        }
+        return null;
+      },
+      background: "#1f2937",
+      color: "#f3f4f6",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+
+    setAttendance(prev => prev.map(r =>
+      r.id === record.id
+        ? {
+            ...r,
+            approval_status: "Rejected" as ApprovalStatus,
+            approved_by: "Admin",
+            approved_at: new Date().toISOString(),
+            rejection_reason: result.value as string,
+          }
+        : r
+    ));
+
+    await showSuccess("Attendance rejected");
+  };
+
+  const getApprovalStatusColor = (status: ApprovalStatus) => {
+    switch (status) {
+      case "Approved":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "Rejected":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+    }
+  };
+
+  const getApprovalIcon = (status: ApprovalStatus) => {
+    switch (status) {
+      case "Approved":
+        return <CheckCircle className="h-4 w-4" />;
+      case "Pending":
+        return <Clock className="h-4 w-4" />;
+      case "Rejected":
+        return <XCircle className="h-4 w-4" />;
+      default:
+        return null;
+    }
   };
 
   const handleExportReport = () => {
@@ -148,7 +276,7 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">Working Days</div>
             <div className="text-2xl font-bold mt-1">{stats.totalDays}</div>
@@ -164,6 +292,10 @@ export default function AttendancePage() {
           <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">On Leave</div>
             <div className="text-2xl font-bold mt-1 text-blue-600">{stats.leave}</div>
+          </div>
+          <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Pending Approval</div>
+            <div className="text-2xl font-bold mt-1 text-yellow-600">{stats.pending}</div>
           </div>
         </div>
 
@@ -199,6 +331,17 @@ export default function AttendancePage() {
                 className="pl-9 w-64"
               />
             </div>
+
+            <select
+              value={approvalFilter}
+              onChange={(e) => setApprovalFilter(e.target.value as any)}
+              className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+            >
+              <option value="All">All Approvals</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
 
             <div className="flex rounded-lg border">
               <Button
@@ -242,8 +385,11 @@ export default function AttendancePage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     Notes
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Approved
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Approval Status
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -268,14 +414,45 @@ export default function AttendancePage() {
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       {record.notes || "-"}
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center">
+                        <Badge className={`inline-flex items-center gap-1 ${getApprovalStatusColor(record.approval_status)}`}>
+                          {getApprovalIcon(record.approval_status)}
+                          {record.approval_status}
+                        </Badge>
+                      </div>
+                      {record.rejection_reason && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Reason: {record.rejection_reason}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
-                      {record.approved_by ? (
-                        <div className="flex items-center gap-1 text-sm text-green-600">
-                          <Check className="h-4 w-4" />
-                          {record.approved_by}
+                      {record.approval_status === "Pending" ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleApprove(record)}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                            title="Approve"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReject(record)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            title="Reject"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </Button>
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-400">Pending</span>
+                        <div className="text-center text-xs text-gray-500">
+                          {record.approved_by && `By ${record.approved_by}`}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -354,6 +531,7 @@ function MarkAttendanceModal({ onClose, onSave }: {
       employee_name: formData.employee_name,
       date: formData.date,
       status: formData.status,
+      approval_status: "Approved",
       check_in: formData.check_in || undefined,
       check_out: formData.check_out || undefined,
       notes: formData.notes || undefined,
