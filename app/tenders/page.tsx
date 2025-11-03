@@ -62,7 +62,10 @@ export default function TendersPage() {
     setIsTenderModalOpen(true);
   };
 
-  const handleCreateTender = (tenderData: Omit<Tender, "id" | "created_at" | "updated_at">) => {
+  const handleCreateTender = (
+    tenderData: Omit<Tender, "id" | "created_at" | "updated_at">,
+    financialsData?: Partial<TenderFinancials>
+  ) => {
     const newTender: Tender = {
       ...tenderData,
       id: Math.max(...tenders.map((t) => t.id), 0) + 1,
@@ -70,9 +73,31 @@ export default function TendersPage() {
       updated_at: new Date().toISOString(),
     };
     setTenders([...tenders, newTender]);
+
+    // Create financials record with provided data or auto-calculated defaults
+    const newFinancials: TenderFinancials = {
+      id: newTender.id,
+      tender_id: newTender.id,
+      emd_amount: financialsData?.emd_amount ?? newTender.estimated_value * 0.05,
+      emd_refundable: newTender.status !== "Awarded",
+      emd_collected: false,
+      sd1_amount: financialsData?.sd1_amount ?? newTender.estimated_value * 0.02,
+      sd1_refundable: false,
+      sd2_amount: financialsData?.sd2_amount ?? newTender.estimated_value * 0.03,
+      sd2_refundable: false,
+      dd_date: financialsData?.dd_date,
+      dd_number: financialsData?.dd_number,
+      dd_amount: financialsData?.dd_amount,
+      dd_beneficiary_name: financialsData?.dd_beneficiary_name,
+      dd_bank_name: financialsData?.dd_bank_name,
+    };
+    setFinancials([...financials, newFinancials]);
   };
 
-  const handleUpdateTender = (tenderData: Omit<Tender, "id" | "created_at" | "updated_at">) => {
+  const handleUpdateTender = (
+    tenderData: Omit<Tender, "id" | "created_at" | "updated_at">,
+    financialsData?: Partial<TenderFinancials>
+  ) => {
     if (!selectedTender) return;
 
     const updatedTender: Tender = {
@@ -83,13 +108,36 @@ export default function TendersPage() {
     };
 
     setTenders(tenders.map((t) => (t.id === selectedTender.id ? updatedTender : t)));
+
+    // Update financials record
+    if (financialsData) {
+      setFinancials(
+        financials.map((f) =>
+          f.tender_id === selectedTender.id
+            ? {
+                ...f,
+                sd1_amount: financialsData.sd1_amount ?? f.sd1_amount,
+                sd2_amount: financialsData.sd2_amount ?? f.sd2_amount,
+                dd_date: financialsData.dd_date ?? f.dd_date,
+                dd_number: financialsData.dd_number ?? f.dd_number,
+                dd_amount: financialsData.dd_amount ?? f.dd_amount,
+                dd_beneficiary_name: financialsData.dd_beneficiary_name ?? f.dd_beneficiary_name,
+                dd_bank_name: financialsData.dd_bank_name ?? f.dd_bank_name,
+              }
+            : f
+        )
+      );
+    }
   };
 
-  const handleTenderSubmit = (tenderData: Omit<Tender, "id" | "created_at" | "updated_at">) => {
+  const handleTenderSubmit = (
+    tenderData: Omit<Tender, "id" | "created_at" | "updated_at">,
+    financialsData?: Partial<TenderFinancials>
+  ) => {
     if (selectedTender) {
-      handleUpdateTender(tenderData);
+      handleUpdateTender(tenderData, financialsData);
     } else {
-      handleCreateTender(tenderData);
+      handleCreateTender(tenderData, financialsData);
     }
   };
 
@@ -238,7 +286,7 @@ export default function TendersPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
             <div className="flex items-center justify-between">
               <div>
@@ -297,12 +345,23 @@ export default function TendersPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending EMDs</p>
                 <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{stats.pendingEMDCount}</p>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  ₹{(stats.pendingEMDAmount / 100000).toFixed(1)}L
-                </p>
               </div>
               <div className="rounded-full bg-orange-100 p-3 dark:bg-orange-900/30">
                 <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending EMD Amt</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                  ₹{(stats.pendingEMDAmount / 100000).toFixed(1)}L
+                </p>
+              </div>
+              <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/30">
+                <IndianRupee className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
             </div>
           </div>
@@ -612,6 +671,11 @@ export default function TendersPage() {
           }}
           onSubmit={handleTenderSubmit}
           tender={selectedTender}
+          existingFinancials={
+            selectedTender
+              ? financials.find((f) => f.tender_id === selectedTender.id) || null
+              : null
+          }
         />
       </div>
     </DashboardLayout>

@@ -2,19 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { Tender } from "@/types";
+import { Tender, TenderFinancials } from "@/types";
 
 interface TenderFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (tender: Omit<Tender, "id" | "created_at" | "updated_at">) => void;
+  onSubmit: (
+    tender: Omit<Tender, "id" | "created_at" | "updated_at">,
+    financials?: Partial<TenderFinancials>
+  ) => void;
   tender?: Tender | null;
+  existingFinancials?: TenderFinancials | null;
 }
 
 export default function TenderFormModal({
   isOpen,
   onClose,
   tender,
+  existingFinancials,
   onSubmit,
 }: TenderFormModalProps) {
   const [formData, setFormData] = useState({
@@ -26,6 +31,13 @@ export default function TenderFormModal({
     end_date: "",
     estimated_value: "",
     status: "Draft" as Tender["status"],
+    sd1_amount: "",
+    sd2_amount: "",
+    dd_date: "",
+    dd_number: "",
+    dd_amount: "",
+    dd_beneficiary_name: "",
+    dd_bank_name: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -33,6 +45,8 @@ export default function TenderFormModal({
   // Populate form when editing
   useEffect(() => {
     if (tender) {
+      // Auto-calculate SD amounts based on estimated value, or use existing if available
+      const estimatedValue = tender.estimated_value;
       setFormData({
         name: tender.name,
         reference_number: tender.reference_number,
@@ -40,8 +54,15 @@ export default function TenderFormModal({
         filed_date: tender.filed_date || "",
         start_date: tender.start_date,
         end_date: tender.end_date,
-        estimated_value: tender.estimated_value.toString(),
+        estimated_value: estimatedValue.toString(),
         status: tender.status,
+        sd1_amount: existingFinancials?.sd1_amount?.toString() || (estimatedValue * 0.02).toString(),
+        sd2_amount: existingFinancials?.sd2_amount?.toString() || (estimatedValue * 0.03).toString(),
+        dd_date: existingFinancials?.dd_date || "",
+        dd_number: existingFinancials?.dd_number || "",
+        dd_amount: existingFinancials?.dd_amount?.toString() || "",
+        dd_beneficiary_name: existingFinancials?.dd_beneficiary_name || "",
+        dd_bank_name: existingFinancials?.dd_bank_name || "",
       });
     } else {
       setFormData({
@@ -53,10 +74,17 @@ export default function TenderFormModal({
         end_date: "",
         estimated_value: "",
         status: "Draft",
+        sd1_amount: "",
+        sd2_amount: "",
+        dd_date: "",
+        dd_number: "",
+        dd_amount: "",
+        dd_beneficiary_name: "",
+        dd_bank_name: "",
       });
     }
     setErrors({});
-  }, [tender, isOpen]);
+  }, [tender, existingFinancials, isOpen]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -98,7 +126,7 @@ export default function TenderFormModal({
       return;
     }
 
-    onSubmit({
+    const tenderData = {
       name: formData.name,
       reference_number: formData.reference_number,
       description: formData.description,
@@ -107,7 +135,19 @@ export default function TenderFormModal({
       end_date: formData.end_date,
       estimated_value: parseFloat(formData.estimated_value),
       status: formData.status,
-    });
+    };
+
+    const financialsData: Partial<TenderFinancials> = {
+      sd1_amount: parseFloat(formData.sd1_amount) || undefined,
+      sd2_amount: parseFloat(formData.sd2_amount) || undefined,
+      dd_date: formData.dd_date || undefined,
+      dd_number: formData.dd_number || undefined,
+      dd_amount: formData.dd_amount ? parseFloat(formData.dd_amount) : undefined,
+      dd_beneficiary_name: formData.dd_beneficiary_name || undefined,
+      dd_bank_name: formData.dd_bank_name || undefined,
+    };
+
+    onSubmit(tenderData, financialsData);
 
     onClose();
   };
@@ -115,8 +155,21 @@ export default function TenderFormModal({
   // Calculate financials for display
   const estimatedValue = parseFloat(formData.estimated_value) || 0;
   const emdAmount = estimatedValue * 0.05; // 5%
-  const sd1Amount = estimatedValue * 0.02; // 2%
-  const sd2Amount = estimatedValue * 0.03; // 3%
+  const sd1Amount = parseFloat(formData.sd1_amount) || estimatedValue * 0.02; // 2%
+  const sd2Amount = parseFloat(formData.sd2_amount) || estimatedValue * 0.03; // 3%
+  
+  // Auto-update SD amounts when estimated value changes (only for new tenders or when user changes estimated value)
+  useEffect(() => {
+    // Only auto-calculate for new tenders (no existing tender)
+    // For existing tenders, user must manually update SD amounts if they change estimated value
+    if (!tender && estimatedValue > 0 && !formData.sd1_amount && !formData.sd2_amount) {
+      setFormData(prev => ({
+        ...prev,
+        sd1_amount: (estimatedValue * 0.02).toString(),
+        sd2_amount: (estimatedValue * 0.03).toString(),
+      }));
+    }
+  }, [estimatedValue, tender, formData.sd1_amount, formData.sd2_amount]);
 
   if (!isOpen) return null;
 
@@ -332,6 +385,121 @@ export default function TenderFormModal({
                         </div>
                       </div>
                     )}
+
+                    {/* Security Deposits */}
+                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <h3 className="mb-4 text-sm font-medium text-gray-900 dark:text-white">
+                        Security Deposits
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Security Deposit 1 (₹)
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.sd1_amount}
+                              onChange={(e) =>
+                                setFormData({ ...formData, sd1_amount: e.target.value })
+                              }
+                              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                              placeholder="Auto-calculated"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Security Deposit 2 (₹)
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.sd2_amount}
+                              onChange={(e) =>
+                                setFormData({ ...formData, sd2_amount: e.target.value })
+                              }
+                              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                              placeholder="Auto-calculated"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Demand Draft Details */}
+                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <h3 className="mb-4 text-sm font-medium text-gray-900 dark:text-white">
+                        Demand Draft (DD) Details
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              DD Date
+                            </label>
+                            <input
+                              type="date"
+                              value={formData.dd_date}
+                              onChange={(e) =>
+                                setFormData({ ...formData, dd_date: e.target.value })
+                              }
+                              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              DD Number
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.dd_number}
+                              onChange={(e) =>
+                                setFormData({ ...formData, dd_number: e.target.value })
+                              }
+                              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            DD Amount (₹)
+                          </label>
+                          <input
+                            type="number"
+                            value={formData.dd_amount}
+                            onChange={(e) =>
+                              setFormData({ ...formData, dd_amount: e.target.value })
+                            }
+                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Beneficiary Name
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.dd_beneficiary_name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, dd_beneficiary_name: e.target.value })
+                            }
+                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Bank Name
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.dd_bank_name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, dd_bank_name: e.target.value })
+                            }
+                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Status */}
                     <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">

@@ -64,7 +64,6 @@ export default function TenderDetailPage() {
   }
 
   const [expandedSections, setExpandedSections] = useState({
-    basicDetails: true,
     financials: true,
     documents: true,
     activityFeed: false,
@@ -213,71 +212,6 @@ export default function TenderDetailPage() {
           </button>
         </div>
 
-        {/* Basic Details Panel */}
-        <div className="rounded-lg bg-white shadow dark:bg-gray-800">
-          <button
-            onClick={() => toggleSection("basicDetails")}
-            className="flex w-full items-center justify-between p-6 text-left"
-          >
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Basic Details</h2>
-            {expandedSections.basicDetails ? (
-              <ChevronUp className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            ) : (
-              <ChevronDown className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            )}
-          </button>
-          {expandedSections.basicDetails && (
-            <div className="border-t border-gray-200 p-6 dark:border-gray-700">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Tender Name
-                  </label>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{tender.name}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Reference Number
-                  </label>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {tender.reference_number}
-                  </p>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Description
-                  </label>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {tender.description}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Estimated Value
-                  </label>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                    ₹{tender.estimated_value.toLocaleString("en-IN")}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status
-                  </label>
-                  <p className="mt-1">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadgeClass(
-                        tender.status
-                      )}`}
-                    >
-                      {tender.status}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Financials Panel */}
         <div className="rounded-lg bg-white shadow dark:bg-gray-800">
           <button
@@ -296,113 +230,98 @@ export default function TenderDetailPage() {
           {expandedSections.financials && (
             <div className="border-t border-gray-200 p-6 dark:border-gray-700">
               <div className="space-y-6">
-                {/* EMD Section */}
-                <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      Earnest Money Deposit (EMD) - 5%
-                    </h3>
-                    {financials?.emd_refundable ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        <Check className="h-3 w-3" />
-                        Refundable
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                        <X className="h-3 w-3" />
-                        Non-Refundable
-                      </span>
+                {/* First Row: SD1, SD2, Total EMD Cards */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {/* SD1 Card */}
+                  <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 dark:border-gray-700 dark:from-blue-900/20 dark:to-gray-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                        Security Deposit 1
+                      </h3>
+                      {financials?.sd1_refundable && (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ₹{((financials?.sd1_amount || tender.estimated_value * 0.02) / 100000).toFixed(2)}L
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">2% of Estimated Value</p>
+                  </div>
+
+                  {/* SD2 Card */}
+                  <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-4 dark:border-gray-700 dark:from-purple-900/20 dark:to-gray-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                        Security Deposit 2
+                      </h3>
+                      {financials?.sd2_refundable && (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ₹{((financials?.sd2_amount || tender.estimated_value * 0.03) / 100000).toFixed(2)}L
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">3% of Estimated Value</p>
+                  </div>
+
+                  {/* Total EMD Card */}
+                  <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4 dark:border-gray-700 dark:from-green-900/20 dark:to-gray-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                        Total EMD
+                      </h3>
+                      {financials?.emd_refundable && (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ₹{((financials?.emd_amount || tender.estimated_value * 0.05) / 100000).toFixed(2)}L
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">5% of Estimated Value</p>
+                    {financials?.emd_refund_date && (
+                      <p className="mt-2 text-xs text-green-600 dark:text-green-400">
+                        Refunded on {new Date(financials.emd_refund_date).toLocaleDateString("en-IN")}
+                      </p>
                     )}
                   </div>
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                </div>
+
+                {/* Second Row: DD Details */}
+                <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                  <h3 className="mb-4 font-medium text-gray-900 dark:text-white">
+                    Demand Draft (DD) Details
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Amount</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">DD Date</p>
                       <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                        ₹{financials?.emd_amount.toLocaleString("en-IN")}
+                        {financials?.dd_date ? new Date(financials.dd_date).toLocaleDateString("en-IN") : "-"}
                       </p>
                     </div>
-                    {financials?.emd_dd_number && (
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">DD Number</p>
-                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                          {financials?.emd_dd_number}
-                        </p>
-                      </div>
-                    )}
-                    {financials?.emd_dd_date && (
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">DD Date</p>
-                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                          {new Date(financials?.emd_dd_date).toLocaleDateString("en-IN")}
-                        </p>
-                      </div>
-                    )}
-                    {financials?.emd_bank && (
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Bank</p>
-                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                          {financials?.emd_bank}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  {financials?.emd_refund_date && (
-                    <div className="mt-3 rounded bg-green-50 p-3 dark:bg-green-900/10">
-                      <p className="text-xs text-green-700 dark:text-green-400">
-                        Refunded on{" "}
-                        {new Date(financials?.emd_refund_date).toLocaleDateString("en-IN")}
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">DD Number</p>
+                      <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                        {financials?.dd_number || "-"}
                       </p>
                     </div>
-                  )}
-                </div>
-
-                {/* SD1 Section */}
-                <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      Security Deposit 1 (SD1) - 2%
-                    </h3>
-                    {financials?.sd1_refundable ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        <Check className="h-3 w-3" />
-                        Refundable
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                        Pending Submission
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Amount</p>
-                    <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                      ₹{financials?.sd1_amount.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                </div>
-
-                {/* SD2 Section */}
-                <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      Security Deposit 2 (SD2) - 3%
-                    </h3>
-                    {financials?.sd2_refundable ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        <Check className="h-3 w-3" />
-                        Refundable
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                        Pending Submission
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Amount</p>
-                    <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                      ₹{financials?.sd2_amount.toLocaleString("en-IN")}
-                    </p>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">DD Amount</p>
+                      <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                        {financials?.dd_amount ? `₹${financials.dd_amount.toLocaleString("en-IN")}` : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Beneficiary Name</p>
+                      <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                        {financials?.dd_beneficiary_name || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Bank Name</p>
+                      <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                        {financials?.dd_bank_name || "-"}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
