@@ -237,7 +237,8 @@ export type Notification = {
 export type DocumentTemplate = {
   id: number;
   title: string;
-  category: "AMC" | "Tender" | "Invoice" | "Contract" | "Report" | "Other";
+  category: "Work Order" | "Experience Certificate" | "Tender Document" | "Affidavit" | "AMC" | "Invoice" | "Contract" | "Report" | "Other";
+  firm_id?: number;
   tags: string[];
   latest_version_number: number;
   created_by: string;

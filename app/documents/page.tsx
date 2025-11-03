@@ -5,7 +5,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { UploadTemplateModal } from '@/components/documents/upload-template-modal';
 import { VersionHistoryModal } from '@/components/documents/version-history-modal';
 import { PreviewModal } from '@/components/documents/preview-modal';
-import { DocumentTemplate, DocumentVersion } from '@/types';
+import { DocumentTemplate, DocumentVersion, Client } from '@/types';
 import {
   Search,
   Plus,
@@ -20,15 +20,98 @@ import {
   Printer,
   Tag,
   Filter,
+  Building2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { showDeleteConfirm, showAlert } from '@/lib/sweetalert';
 
+const mockClients: Client[] = [
+  {
+    id: 1,
+    name: "ABC Power Solutions Ltd",
+    business_name: "ABC Power",
+    address: "123 Industrial Area, Sector 45",
+    city: "Mumbai",
+    state: "Maharashtra",
+    pin_code: "400001",
+    country: "India",
+    primary_contact_name: "Rajesh Kumar",
+    primary_contact_email: "rajesh@abcpower.com",
+    primary_contact_phone: "9876543210",
+    tags: ["premium", "long-term"],
+    amc_count: 5,
+    open_projects: 2,
+    outstanding_amount: 125000,
+    last_activity: "2025-10-30T10:30:00Z",
+    created_at: "2023-01-15T00:00:00Z",
+    updated_at: "2025-10-30T10:30:00Z",
+  },
+  {
+    id: 2,
+    name: "XYZ Industries",
+    address: "456 Tech Park, Phase 2",
+    city: "Pune",
+    state: "Maharashtra",
+    pin_code: "411001",
+    country: "India",
+    primary_contact_name: "Priya Sharma",
+    primary_contact_email: "priya@xyzind.com",
+    primary_contact_phone: "9765432109",
+    tags: ["industrial", "regular"],
+    amc_count: 3,
+    open_projects: 1,
+    outstanding_amount: 75000,
+    last_activity: "2025-10-28T14:20:00Z",
+    created_at: "2023-06-20T00:00:00Z",
+    updated_at: "2025-10-28T14:20:00Z",
+  },
+  {
+    id: 3,
+    name: "TechCorp Solutions",
+    business_name: "TechCorp IT Services",
+    address: "789 Software City, Building A",
+    city: "Bangalore",
+    state: "Karnataka",
+    pin_code: "560001",
+    country: "India",
+    primary_contact_name: "Amit Patel",
+    primary_contact_email: "amit@techcorp.com",
+    primary_contact_phone: "9654321098",
+    tags: ["tech", "corporate"],
+    amc_count: 4,
+    open_projects: 3,
+    outstanding_amount: 0,
+    last_activity: "2025-11-01T09:15:00Z",
+    created_at: "2024-02-10T00:00:00Z",
+    updated_at: "2025-11-01T09:15:00Z",
+  },
+  {
+    id: 4,
+    name: "Metro Mall Services",
+    address: "Metro Plaza, MG Road",
+    city: "Delhi",
+    state: "Delhi",
+    pin_code: "110001",
+    country: "India",
+    primary_contact_name: "Sunita Verma",
+    primary_contact_email: "sunita@metromall.com",
+    primary_contact_phone: "9543210987",
+    tags: ["retail", "commercial"],
+    amc_count: 2,
+    open_projects: 0,
+    outstanding_amount: 50000,
+    last_activity: "2025-10-25T16:45:00Z",
+    created_at: "2024-08-05T00:00:00Z",
+    updated_at: "2025-10-25T16:45:00Z",
+  },
+];
+
 const mockTemplates: DocumentTemplate[] = [
   {
     id: 1,
-    title: 'AMC Service Agreement Template',
+    title: 'AMC Service Agreement - ABC Power',
     category: 'AMC',
+    firm_id: 1,
     tags: ['agreement', 'service', 'contract'],
     latest_version_number: 3,
     created_by: 'Admin User',
@@ -37,9 +120,10 @@ const mockTemplates: DocumentTemplate[] = [
   },
   {
     id: 2,
-    title: 'Tender Submission Cover Letter',
-    category: 'Tender',
-    tags: ['tender', 'cover-letter', 'submission'],
+    title: 'Tender Document - National Electrical Grid',
+    category: 'Tender Document',
+    firm_id: 2,
+    tags: ['tender', 'national', 'grid'],
     latest_version_number: 2,
     created_by: 'John Doe',
     created_at: '2025-02-01T09:00:00Z',
@@ -47,9 +131,10 @@ const mockTemplates: DocumentTemplate[] = [
   },
   {
     id: 3,
-    title: 'Invoice Template - Standard',
-    category: 'Invoice',
-    tags: ['invoice', 'billing', 'payment'],
+    title: 'Work Order - IT Infrastructure Setup',
+    category: 'Work Order',
+    firm_id: 3,
+    tags: ['work-order', 'infrastructure', 'it'],
     latest_version_number: 5,
     created_by: 'Finance Team',
     created_at: '2024-11-10T08:00:00Z',
@@ -57,9 +142,9 @@ const mockTemplates: DocumentTemplate[] = [
   },
   {
     id: 4,
-    title: 'Employee Contract Template',
-    category: 'Contract',
-    tags: ['employee', 'hr', 'contract'],
+    title: 'Experience Certificate Template',
+    category: 'Experience Certificate',
+    tags: ['employee', 'hr', 'certificate'],
     latest_version_number: 4,
     created_by: 'HR Manager',
     created_at: '2025-03-05T12:00:00Z',
@@ -67,23 +152,36 @@ const mockTemplates: DocumentTemplate[] = [
   },
   {
     id: 5,
-    title: 'Monthly Performance Report',
-    category: 'Report',
-    tags: ['report', 'performance', 'monthly'],
+    title: 'Affidavit - License Compliance',
+    category: 'Affidavit',
+    firm_id: 4,
+    tags: ['affidavit', 'compliance', 'legal'],
     latest_version_number: 1,
-    created_by: 'Manager',
+    created_by: 'Legal Team',
     created_at: '2025-10-01T07:30:00Z',
     updated_at: '2025-10-01T07:30:00Z',
   },
   {
     id: 6,
-    title: 'Safety Compliance Checklist',
-    category: 'Other',
-    tags: ['safety', 'compliance', 'checklist'],
+    title: 'Invoice Template - Standard',
+    category: 'Invoice',
+    firm_id: 1,
+    tags: ['invoice', 'billing', 'payment'],
     latest_version_number: 2,
-    created_by: 'Safety Officer',
+    created_by: 'Finance Officer',
     created_at: '2025-05-20T14:00:00Z',
     updated_at: '2025-08-25T09:40:00Z',
+  },
+  {
+    id: 7,
+    title: 'Work Order - Electrical Panel Installation',
+    category: 'Work Order',
+    firm_id: 2,
+    tags: ['work-order', 'installation', 'electrical'],
+    latest_version_number: 1,
+    created_by: 'Project Manager',
+    created_at: '2025-09-10T08:00:00Z',
+    updated_at: '2025-09-10T08:00:00Z',
   },
 ];
 
@@ -165,6 +263,7 @@ export default function DocumentsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedFirm, setSelectedFirm] = useState<number | 'all'>('all');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -174,7 +273,7 @@ export default function DocumentsPage() {
   const [selectedTemplates, setSelectedTemplates] = useState<Set<number>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
 
-  const categories = ['all', 'AMC', 'Tender', 'Invoice', 'Contract', 'Report', 'Other'];
+  const categories = ['all', 'Work Order', 'Experience Certificate', 'Tender Document', 'Affidavit', 'AMC', 'Invoice', 'Contract', 'Report', 'Other'];
 
   const filteredTemplates = templates.filter((template) => {
     const matchesSearch =
@@ -185,12 +284,16 @@ export default function DocumentsPage() {
     const matchesCategory =
       selectedCategory === 'all' || template.category === selectedCategory;
 
-    return matchesSearch && matchesCategory;
+    const matchesFirm =
+      selectedFirm === 'all' || template.firm_id === selectedFirm;
+
+    return matchesSearch && matchesCategory && matchesFirm;
   });
 
   const handleUpload = (data: {
     title: string;
     category: string;
+    firm_id?: number;
     file: File | null;
     notes: string;
   }) => {
@@ -206,6 +309,7 @@ export default function DocumentsPage() {
       id: newTemplateId,
       title: data.title,
       category: data.category as DocumentTemplate['category'],
+      firm_id: data.firm_id,
       tags: [],
       latest_version_number: 1,
       created_by: 'Current User',
@@ -466,6 +570,22 @@ export default function DocumentsPage() {
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat === 'all' ? 'All Categories' : cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+            <select
+              value={selectedFirm}
+              onChange={(e) => setSelectedFirm(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="all">All Firms</option>
+              {mockClients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
                 </option>
               ))}
             </select>
@@ -808,6 +928,7 @@ export default function DocumentsPage() {
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
         onUpload={handleUpload}
+        clients={mockClients}
       />
 
       {selectedTemplate && (

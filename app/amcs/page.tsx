@@ -669,6 +669,13 @@ export default function AMCsPage() {
               setShowBillingModal(false);
               setBillingAMC(null);
             }}
+            onUpdateBilling={(billingId: number, updates: Partial<AMCBilling>) => {
+              setBillings(prevBillings => 
+                prevBillings.map(b => 
+                  b.id === billingId ? { ...b, ...updates } : b
+                )
+              );
+            }}
           />
         )}
 
@@ -692,14 +699,25 @@ export default function AMCsPage() {
   );
 }
 
-function AMCBillingModal({ amc, billings, onClose }: {
+function AMCBillingModal({ amc, billings, onClose, onUpdateBilling }: {
   amc: AMC;
   billings: AMCBilling[];
   onClose: () => void;
+  onUpdateBilling: (billingId: number, updates: Partial<AMCBilling>) => void;
 }) {
   const totalAmount = billings.reduce((sum, b) => sum + b.amount, 0);
   const paidAmount = billings.filter(b => b.paid).reduce((sum, b) => sum + b.amount, 0);
   const outstandingAmount = totalAmount - paidAmount;
+
+  const handleTogglePaid = async (billing: AMCBilling) => {
+    const newPaidStatus = !billing.paid;
+    const updates: Partial<AMCBilling> = {
+      paid: newPaidStatus,
+      payment_date: newPaidStatus ? new Date().toISOString() : undefined,
+      payment_mode: newPaidStatus ? 'Bank Transfer' : undefined,
+    };
+    onUpdateBilling(billing.id, updates);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -761,6 +779,9 @@ function AMCBillingModal({ amc, billings, onClose }: {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                     Payment Details
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -795,6 +816,18 @@ function AMCBillingModal({ amc, billings, onClose }: {
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleTogglePaid(bill)}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                          bill.paid
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                        }`}
+                      >
+                        {bill.paid ? 'Mark Pending' : 'Mark Paid'}
+                      </button>
                     </td>
                   </tr>
                 ))}

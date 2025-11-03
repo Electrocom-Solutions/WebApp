@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, Upload, File } from 'lucide-react';
+import { Client } from '@/types';
 
 type UploadTemplateModalProps = {
   isOpen: boolean;
@@ -9,16 +10,19 @@ type UploadTemplateModalProps = {
   onUpload: (data: {
     title: string;
     category: string;
+    firm_id?: number;
     file: File | null;
     notes: string;
   }) => void;
+  clients: Client[];
 };
 
-const categories = ['AMC', 'Tender', 'Invoice', 'Contract', 'Report', 'Other'];
+const categories = ['Work Order', 'Experience Certificate', 'Tender Document', 'Affidavit', 'AMC', 'Invoice', 'Contract', 'Report', 'Other'];
 
-export function UploadTemplateModal({ isOpen, onClose, onUpload }: UploadTemplateModalProps) {
+export function UploadTemplateModal({ isOpen, onClose, onUpload, clients }: UploadTemplateModalProps) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
+  const [firmId, setFirmId] = useState<number | ''>('');
   const [file, setFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -94,10 +98,17 @@ export function UploadTemplateModal({ isOpen, onClose, onUpload }: UploadTemplat
       return;
     }
 
-    onUpload({ title, category, file, notes });
+    onUpload({ 
+      title, 
+      category, 
+      firm_id: firmId === '' ? undefined : firmId,
+      file, 
+      notes 
+    });
     
     setTitle('');
     setCategory('');
+    setFirmId('');
     setFile(null);
     setNotes('');
     setError('');
@@ -106,6 +117,7 @@ export function UploadTemplateModal({ isOpen, onClose, onUpload }: UploadTemplat
   const handleClose = () => {
     setTitle('');
     setCategory('');
+    setFirmId('');
     setFile(null);
     setNotes('');
     setError('');
@@ -152,6 +164,24 @@ export function UploadTemplateModal({ isOpen, onClose, onUpload }: UploadTemplat
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Firm (Optional)
+            </label>
+            <select
+              value={firmId}
+              onChange={(e) => setFirmId(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              <option value="">No firm association</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
                 </option>
               ))}
             </select>
