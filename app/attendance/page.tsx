@@ -108,7 +108,9 @@ export default function AttendancePage() {
   const [approvalFilter, setApprovalFilter] = useState<ApprovalStatus | "All">("All");
   const [showMarkModal, setShowMarkModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showBulkPresentModal, setShowBulkPresentModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
+  const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
   const [workingDaysPerMonth] = useState(26);
 
   const monthStart = startOfMonth(currentMonth);
@@ -409,12 +411,50 @@ export default function AttendancePage() {
           </div>
         </div>
 
+        {selectedEmployees.length > 0 && (
+          <div className="bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 rounded-lg p-4 flex items-center justify-between">
+            <div className="text-sm font-medium dark:text-sky-200">
+              {selectedEmployees.length} employee{selectedEmployees.length > 1 ? 's' : ''} selected
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSelectedEmployees([])}
+              >
+                Clear Selection
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowBulkPresentModal(true)}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Mark as Present
+              </Button>
+            </div>
+          </div>
+        )}
+
         {viewMode === "list" ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800/50">
                   <tr>
+                    <th className="px-6 py-3 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedEmployees.length > 0 && selectedEmployees.length === activeEmployees.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEmployees(activeEmployees.map(emp => emp.id));
+                          } else {
+                            setSelectedEmployees([]);
+                          }
+                        }}
+                        className="rounded border-gray-300 dark:border-gray-600 text-sky-600 focus:ring-sky-500"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                       Date
                     </th>
@@ -444,17 +484,35 @@ export default function AttendancePage() {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredAttendance.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                      <td colSpan={9} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                         No attendance records found
                       </td>
                     </tr>
                   ) : (
-                    filteredAttendance.map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="px-6 py-4 text-sm font-medium dark:text-gray-200">
-                          {format(new Date(record.date), "MMM dd, yyyy")}
-                        </td>
-                        <td className="px-6 py-4 text-sm dark:text-gray-300">{record.employee_name}</td>
+                    filteredAttendance.map((record) => {
+                      const employee = activeEmployees.find(emp => emp.id === record.employee_id);
+                      return (
+                        <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="px-6 py-4">
+                            {employee && (
+                              <input
+                                type="checkbox"
+                                checked={selectedEmployees.includes(employee.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedEmployees(prev => [...prev, employee.id]);
+                                  } else {
+                                    setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
+                                  }
+                                }}
+                                className="rounded border-gray-300 dark:border-gray-600 text-sky-600 focus:ring-sky-500"
+                              />
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium dark:text-gray-200">
+                            {format(new Date(record.date), "MMM dd, yyyy")}
+                          </td>
+                          <td className="px-6 py-4 text-sm dark:text-gray-300">{record.employee_name}</td>
                         <td className="px-6 py-4">
                           <Badge className={getStatusColor(record.status)}>
                             {record.status}
@@ -522,7 +580,8 @@ export default function AttendancePage() {
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -585,6 +644,46 @@ export default function AttendancePage() {
         <ExportReportModal
           onClose={() => setShowExportModal(false)}
           attendance={attendance}
+        />
+      )}
+
+      {showBulkPresentModal && (
+        <BulkMarkPresentModal
+          employees={activeEmployees.filter(emp => selectedEmployees.includes(emp.id))}
+          onClose={() => setShowBulkPresentModal(false)}
+          onSave={(date, checkIn, checkOut) => {
+            const newRecords: AttendanceRecord[] = selectedEmployees
+              .map(empId => {
+                const employee = activeEmployees.find(e => e.id === empId);
+                if (!employee) return null;
+
+                const existingIndex = attendance.findIndex(
+                  r => r.employee_id === empId && r.date === date
+                );
+
+                if (existingIndex >= 0) {
+                  return null;
+                }
+
+                const record: AttendanceRecord = {
+                  id: Date.now() + empId,
+                  employee_id: empId,
+                  employee_name: employee.name,
+                  date,
+                  status: "Present",
+                  approval_status: "Pending",
+                  check_in: checkIn || undefined,
+                  check_out: checkOut || undefined,
+                };
+                return record;
+              })
+              .filter(r => r !== null) as AttendanceRecord[];
+
+            setAttendance(prev => [...newRecords, ...prev]);
+            setSelectedEmployees([]);
+            setShowBulkPresentModal(false);
+            showSuccess(`Marked ${newRecords.length} employee${newRecords.length > 1 ? 's' : ''} as present`);
+          }}
         />
       )}
     </DashboardLayout>
@@ -871,6 +970,115 @@ function ExportReportModal({
             </Button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkMarkPresentModal({
+  employees,
+  onClose,
+  onSave,
+}: {
+  employees: Employee[];
+  onClose: () => void;
+  onSave: (date: string, checkIn: string, checkOut: string) => void;
+}) {
+  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(date, checkIn, checkOut);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+          <h2 className="text-xl font-semibold dark:text-white">Mark Employees as Present</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <XIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Selected Employees
+            </label>
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-3 max-h-32 overflow-y-auto">
+              <div className="space-y-1">
+                {employees.map((emp) => (
+                  <div key={emp.id} className="text-sm dark:text-gray-300">
+                    • {emp.name} ({emp.employee_id})
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {employees.length} employee{employees.length > 1 ? 's' : ''} will be marked as present
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Date <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setDate(format(new Date(), "yyyy-MM-dd"))}
+              >
+                Today
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Check In (Optional)</label>
+              <Input
+                type="time"
+                value={checkIn}
+                onChange={(e) => setCheckIn(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Check Out (Optional)</label>
+              <Input
+                type="time"
+                value={checkOut}
+                onChange={(e) => setCheckOut(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>Note:</strong> All attendance records will be created with "Pending" approval status and need to be approved by the owner.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              <Check className="h-4 w-4 mr-2" />
+              Mark as Present
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );
