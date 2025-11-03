@@ -396,7 +396,7 @@ function WorkerModal({ worker, onClose, onSave }: {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
                 Name <span className="text-red-500">*</span>
               </label>
               <Input
@@ -406,11 +406,11 @@ function WorkerModal({ worker, onClose, onSave }: {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Worker ID</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Worker ID</label>
               <Input value={formData.worker_id} disabled />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Phone <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Phone <span className="text-red-500">*</span></label>
               <Input
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -418,7 +418,7 @@ function WorkerModal({ worker, onClose, onSave }: {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Designation</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Designation</label>
               <select
                 value={formData.designation}
                 onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
@@ -441,14 +441,14 @@ function WorkerModal({ worker, onClose, onSave }: {
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium mb-2">Address</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Address</label>
               <Input
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
@@ -460,7 +460,7 @@ function WorkerModal({ worker, onClose, onSave }: {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Assigned Project</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Assigned Project</label>
               <select
                 value={formData.project_id}
                 onChange={(e) => setFormData({ ...formData, project_id: Number(e.target.value) })}
@@ -544,8 +544,8 @@ function BulkImportModal({ onClose, onImport }: {
 
   const handleImport = () => {
     const sampleWorkers: ContractWorker[] = [
-      { id: Date.now() + 1, name: "Sample Worker 1", worker_id: "CW-101", phone: "+91 98765 44444", skill: "Electrician", daily_rate: 850, status: "Available", created_at: new Date().toISOString() },
-      { id: Date.now() + 2, name: "Sample Worker 2", worker_id: "CW-102", phone: "+91 98765 55555", skill: "Welder", daily_rate: 950, status: "Available", created_at: new Date().toISOString() },
+      { id: Date.now() + 1, name: "Sample Worker 1", worker_id: "CW-101", phone: "+91 98765 44444", designation: "Electrician", monthly_salary: 25000, status: "Available", created_at: new Date().toISOString() },
+      { id: Date.now() + 2, name: "Sample Worker 2", worker_id: "CW-102", phone: "+91 98765 55555", designation: "Fitter", monthly_salary: 28000, status: "Available", created_at: new Date().toISOString() },
     ];
     onImport(sampleWorkers);
   };
