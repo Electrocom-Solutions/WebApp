@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Upload, Edit, Trash2, X, User, Phone, MapPin } from "lucide-react";
+import { showDeleteConfirm } from "@/lib/sweetalert";
 
 type ContractWorker = {
   id: number;
@@ -80,8 +81,9 @@ export default function ContractWorkersPage() {
     return matchesSearch && matchesSkill && matchesStatus;
   });
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this worker?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this worker");
+    if (confirmed) {
       setWorkers(prev => prev.filter(w => w.id !== id));
     }
   };

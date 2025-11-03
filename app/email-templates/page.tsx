@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, Eye, Edit, Send, Trash2, Copy, X } from "lucide-react";
 import { EmailTemplate } from "@/types";
 import { mockEmailTemplates } from "@/lib/mock-data/email-templates";
+import { showDeleteConfirm, showSuccess } from "@/lib/sweetalert";
 
 export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>(mockEmailTemplates);
@@ -21,8 +22,9 @@ export default function EmailTemplatesPage() {
     template.subject.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this template?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this template");
+    if (confirmed) {
       setTemplates(prev => prev.filter(t => t.id !== id));
     }
   };
@@ -332,13 +334,16 @@ function SendEmailModal({ template, onClose }: { template: EmailTemplate; onClos
   const [recipients, setRecipients] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const message = scheduleDate
       ? `Email scheduled for ${new Date(scheduleDate).toLocaleString()}\n\nTemplate: ${template.name}\nRecipients: ${recipients}`
       : `Email sent successfully!\n\nTemplate: ${template.name}\nRecipients: ${recipients}`;
     
-    alert(message);
+    await showSuccess(
+      scheduleDate ? "Email Scheduled" : "Email Sent",
+      `Template: ${template.name}\nRecipients: ${recipients}${scheduleDate ? `\n\nScheduled for: ${new Date(scheduleDate).toLocaleString()}` : ''}`
+    );
     onClose();
   };
 

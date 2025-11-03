@@ -19,6 +19,7 @@ import { mockNotifications } from "@/lib/mock-data/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { showDeleteConfirm, showSuccess } from "@/lib/sweetalert";
 
 const getNotificationIcon = (type: string) => {
   const iconClass = "h-6 w-6";
@@ -83,8 +84,9 @@ export default function NotificationsPage() {
     );
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this notification?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this notification");
+    if (confirmed) {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }
   };
@@ -265,7 +267,7 @@ function CreateNotificationModal({
   const [type, setType] = useState<NotificationType>("System");
   const [scheduleDate, setScheduleDate] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newNotification: NotificationRecord = {
@@ -282,9 +284,9 @@ function CreateNotificationModal({
     };
 
     if (scheduleDate) {
-      alert(
-        `Notification scheduled for ${new Date(scheduleDate).toLocaleString()}\n\n` +
-          `In production, this would be queued for delivery at the scheduled time.`
+      await showSuccess(
+        "Notification Scheduled",
+        `Notification scheduled for ${new Date(scheduleDate).toLocaleString()}\n\nIn production, this would be queued for delivery at the scheduled time.`
       );
     }
 

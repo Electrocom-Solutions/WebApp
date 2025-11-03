@@ -8,6 +8,7 @@ import { Search, Plus, Edit, Trash2, Package, X } from "lucide-react";
 import { Resource } from "@/types";
 import { mockResources } from "@/lib/mock-data/resources";
 import { cn } from "@/lib/utils";
+import { showDeleteConfirm, showError } from "@/lib/sweetalert";
 
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>(mockResources);
@@ -20,8 +21,9 @@ export default function ResourcesPage() {
     resource.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this resource?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this resource");
+    if (confirmed) {
       setResources(prev => prev.filter(r => r.id !== id));
     }
   };
@@ -349,7 +351,7 @@ function StockAdjustModal({
     const newStock = type === "add" ? currentStock + adjustValue : currentStock - adjustValue;
     
     if (newStock < 0) {
-      alert("Stock cannot be negative!");
+      showError("Invalid Stock", "Stock cannot be negative!");
       return;
     }
     

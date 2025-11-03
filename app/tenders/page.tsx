@@ -19,6 +19,7 @@ import Link from "next/link";
 import { Tender, TenderFinancials } from "@/types";
 import TenderFormModal from "@/components/tenders/tender-form-modal";
 import { mockTenders as initialTenders } from "@/lib/mock-data/tenders";
+import { showDeleteConfirm, showConfirm } from "@/lib/sweetalert";
 
 export default function TendersPage() {
   const [tenders, setTenders] = useState<Tender[]>(initialTenders);
@@ -92,19 +93,31 @@ export default function TendersPage() {
     }
   };
 
-  const handleDeleteTender = (tender: Tender) => {
-    if (confirm(`Are you sure you want to delete tender "${tender.name}"? This action cannot be undone.`)) {
+  const handleDeleteTender = async (tender: Tender) => {
+    const confirmed = await showConfirm(
+      "Delete Tender?",
+      `Are you sure you want to delete tender "${tender.name}"? This action cannot be undone.`,
+      "Yes, delete it",
+      "Cancel"
+    );
+    if (confirmed) {
       setTenders(tenders.filter((t) => t.id !== tender.id));
       setFinancials(financials.filter((f) => f.tender_id !== tender.id));
     }
   };
 
-  const handleMarkEMDCollected = (tenderId: number) => {
+  const handleMarkEMDCollected = async (tenderId: number) => {
     const tender = tenders.find((t) => t.id === tenderId);
     if (!tender) return;
 
     const collectionType = tender.status === "Lost" ? "SD1 (2%)" : "EMD (5%)";
-    if (confirm(`Mark ${collectionType} as collected for tender "${tender.name}"?`)) {
+    const confirmed = await showConfirm(
+      "Mark as Collected",
+      `Mark ${collectionType} as collected for tender "${tender.name}"?`,
+      "Yes, mark as collected",
+      "Cancel"
+    );
+    if (confirmed) {
       setFinancials(
         financials.map((f) =>
           f.tender_id === tenderId

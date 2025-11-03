@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, CreditCard, Calendar, Bell, Plus, Edit, Trash2, X } from "lucide-react";
 import { BankAccount, Holiday, SystemSettings } from "@/types";
 import { mockBankAccounts, mockHolidays, mockSystemSettings } from "@/lib/mock-data/settings";
+import { showSuccess, showDeleteConfirm } from "@/lib/sweetalert";
 
 type Tab = "company" | "bank-accounts" | "holidays" | "notifications";
 
@@ -28,19 +29,21 @@ export default function SettingsPage() {
     { id: "notifications" as Tab, label: "Notifications", icon: Bell },
   ];
 
-  const handleSaveCompany = (e: React.FormEvent) => {
+  const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Company settings saved successfully!");
+    await showSuccess("Settings Saved", "Company settings saved successfully!");
   };
 
-  const handleDeleteBank = (id: number) => {
-    if (confirm("Delete this bank account?")) {
+  const handleDeleteBank = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this bank account");
+    if (confirmed) {
       setBankAccounts(prev => prev.filter(b => b.id !== id));
     }
   };
 
-  const handleDeleteHoliday = (id: number) => {
-    if (confirm("Delete this holiday?")) {
+  const handleDeleteHoliday = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this holiday");
+    if (confirmed) {
       setHolidays(prev => prev.filter(h => h.id !== id));
     }
   };
@@ -298,7 +301,7 @@ export default function SettingsPage() {
                   max="30"
                 />
               </div>
-              <Button onClick={() => alert("Notification settings saved!")}>
+              <Button onClick={() => showSuccess("Preferences Saved", "Notification settings saved successfully!")}>
                 Save Preferences
               </Button>
             </CardContent>

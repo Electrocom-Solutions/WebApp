@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Eye, Edit, Trash2, X } from "lucide-react";
 import { Project } from "@/types";
 import { cn } from "@/lib/utils";
+import { showDeleteConfirm, showAlert } from "@/lib/sweetalert";
 
 const mockProjects: Project[] = [
   {
@@ -55,8 +56,9 @@ export default function ProjectsPage() {
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this project?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this project");
+    if (confirmed) {
       setProjects(prev => prev.filter(p => p.id !== id));
     }
   };
@@ -128,7 +130,7 @@ export default function ProjectsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => alert("Project details view - would show tasks, resources, timeline")}
+                    onClick={() => showAlert("Project Details", "Would show tasks, resources, and timeline for this project", "info")}
                     title="View Details"
                   >
                     <Eye className="h-4 w-4" />

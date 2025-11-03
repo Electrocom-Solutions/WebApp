@@ -22,6 +22,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { showDeleteConfirm, showAlert } from '@/lib/sweetalert';
 
 const mockTemplates: DocumentTemplate[] = [
   {
@@ -285,7 +286,7 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleDelete = (templateId: number, versionId?: number) => {
+  const handleDelete = async (templateId: number, versionId?: number) => {
     if (versionId) {
       setVersions((prev) => {
         const newVersions = { ...prev };
@@ -293,7 +294,8 @@ export default function DocumentsPage() {
         return newVersions;
       });
     } else {
-      if (confirm('Are you sure you want to delete this template and all its versions?')) {
+      const confirmed = await showDeleteConfirm('this template and all its versions');
+      if (confirmed) {
         setTemplates((prev) => prev.filter((t) => t.id !== templateId));
         setVersions((prev) => {
           const newVersions = { ...prev };
@@ -334,11 +336,15 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleBulkPrint = () => {
+  const handleBulkPrint = async () => {
     const selectedIds = Array.from(selectedTemplates);
     const selectedTemplatesToPrint = templates.filter((t) => selectedIds.includes(t.id));
     
-    alert(`Preparing to print ${selectedTemplatesToPrint.length} template(s):\n${selectedTemplatesToPrint.map((t) => `- ${t.title}`).join('\n')}`);
+    await showAlert(
+      "Preparing to Print",
+      `Preparing to print ${selectedTemplatesToPrint.length} template(s):\n${selectedTemplatesToPrint.map((t) => `- ${t.title}`).join('\n')}`,
+      "info"
+    );
     
     window.print();
   };

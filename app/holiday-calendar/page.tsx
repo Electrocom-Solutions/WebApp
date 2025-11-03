@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, X, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import { showDeleteConfirm } from "@/lib/sweetalert";
 
 type Holiday = {
   id: number;
@@ -70,8 +71,9 @@ export default function HolidayCalendarPage() {
     .filter(h => filterType === "all" || h.type === filterType)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this holiday?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this holiday");
+    if (confirmed) {
       setHolidays(prev => prev.filter(h => h.id !== id));
     }
   };

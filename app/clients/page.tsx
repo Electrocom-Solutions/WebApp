@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { Client } from "@/types";
 import { format } from "date-fns";
+import { showDeleteConfirm, showConfirm, showAlert } from "@/lib/sweetalert";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([
@@ -187,8 +188,9 @@ export default function ClientsPage() {
     }
   };
 
-  const handleDeleteClient = (clientId: number) => {
-    if (confirm("Are you sure you want to delete this client? This action cannot be undone.")) {
+  const handleDeleteClient = async (clientId: number) => {
+    const confirmed = await showDeleteConfirm("this client");
+    if (confirmed) {
       setClients(clients.filter((c) => c.id !== clientId));
       selectedClients.delete(clientId);
       setSelectedClients(new Set(selectedClients));
@@ -242,23 +244,27 @@ export default function ClientsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleBulkEmail = () => {
+  const handleBulkEmail = async () => {
     const selectedClientData = clients.filter((c) =>
       selectedClients.has(c.id)
     );
-    alert(
+    await showAlert(
+      "Bulk Email",
       `Send bulk email to ${selectedClientData.length} clients:\n${selectedClientData
         .map((c) => c.primary_contact_email)
-        .join("\n")}`
+        .join(", ")}`,
+      "info"
     );
   };
 
-  const handleBulkDelete = () => {
-    if (
-      confirm(
-        `Are you sure you want to delete ${selectedClients.size} clients? This action cannot be undone.`
-      )
-    ) {
+  const handleBulkDelete = async () => {
+    const confirmed = await showConfirm(
+      "Delete Multiple Clients?",
+      `Are you sure you want to delete ${selectedClients.size} clients? This action cannot be undone.`,
+      "Yes, delete them",
+      "Cancel"
+    );
+    if (confirmed) {
       setClients(clients.filter((c) => !selectedClients.has(c.id)));
       setSelectedClients(new Set());
     }

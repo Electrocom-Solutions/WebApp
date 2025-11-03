@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Download, BarChart3, TrendingUp, FileSpreadsheet, X } from "lucide-react";
+import { showAlert } from "@/lib/sweetalert";
 
 const reportTypes = [
   {
@@ -114,13 +115,11 @@ function ReportModal({ reportId, onClose }: { reportId: string; onClose: () => v
   const [format, setFormat] = useState("pdf");
   const [dateRange, setDateRange] = useState("this-month");
 
-  const handleExport = () => {
-    alert(
-      `Report Generated!\n\n` +
-        `Report: ${report?.title}\n` +
-        `Format: ${format.toUpperCase()}\n` +
-        `Date Range: ${dateRange}\n\n` +
-        `In production, this would generate the report and download it automatically.`
+  const handleExport = async () => {
+    await showAlert(
+      "Report Generated!",
+      `Report: ${report?.title}\nFormat: ${format.toUpperCase()}\nDate Range: ${dateRange}\n\nIn production, this would generate the report and download it automatically.`,
+      "success"
     );
     onClose();
   };

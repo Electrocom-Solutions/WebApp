@@ -20,6 +20,7 @@ import { PayrollRecord, PaymentStatus, PaymentMode } from "@/types";
 import { format } from "date-fns";
 import { PayslipModal } from "@/components/payroll/payslip-modal";
 import { MarkPaidModal } from "@/components/payroll/mark-paid-modal";
+import { showAlert, showConfirm, showSuccess } from "@/lib/sweetalert";
 
 export default function PayrollPage() {
   const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>(mockPayrollRecords);
@@ -111,28 +112,25 @@ export default function PayrollPage() {
     }
   };
 
-  const handleBulkGeneratePayslips = () => {
+  const handleBulkGeneratePayslips = async () => {
     if (selectedRecords.length === 0) return;
     
-    alert(
-      `Payslip PDFs would be generated for ${selectedRecords.length} employee(s).\n\n` +
-      `In production, this would:\n` +
-      `- Generate PDF payslips using the Document Management template\n` +
-      `- Download as ZIP file or individual PDFs\n` +
-      `- Email payslips to employees (optional)\n\n` +
-      `(This is a frontend-only demo - PDF generation will be implemented when Django API is integrated)`
+    await showAlert(
+      "Generate Payslips",
+      `Payslip PDFs would be generated for ${selectedRecords.length} employee(s).\n\nIn production, this would:\n- Generate PDF payslips using the Document Management template\n- Download as ZIP file or individual PDFs\n- Email payslips to employees (optional)\n\n(This is a frontend-only demo - PDF generation will be implemented when Django API is integrated)`,
+      "info"
     );
   };
 
-  const handleBulkMarkPaid = () => {
+  const handleBulkMarkPaid = async () => {
     if (selectedRecords.length === 0) return;
 
     const paymentDate = new Date().toISOString().split("T")[0];
-    const confirmed = confirm(
-      `Mark ${selectedRecords.length} payroll record(s) as PAID?\n\n` +
-      `Payment Date: ${paymentDate}\n` +
-      `Payment Mode: Bank Transfer\n\n` +
-      `This action will update all selected records.`
+    const confirmed = await showConfirm(
+      "Mark as Paid",
+      `Mark ${selectedRecords.length} payroll record(s) as PAID?\n\nPayment Date: ${paymentDate}\nPayment Mode: Bank Transfer\n\nThis action will update all selected records.`,
+      "Yes, mark as paid",
+      "Cancel"
     );
 
     if (!confirmed) return;
@@ -151,8 +149,9 @@ export default function PayrollPage() {
       )
     );
 
+    const count = selectedRecords.length;
     setSelectedRecords([]);
-    alert(`Successfully marked ${selectedRecords.length} payroll record(s) as paid!`);
+    await showSuccess("Success", `Successfully marked ${count} payroll record(s) as paid!`);
   };
 
   const getStatusColor = (status: PaymentStatus) => {

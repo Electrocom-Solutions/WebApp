@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, X, Building2, CreditCard } from "lucide-react";
+import { showDeleteConfirm } from "@/lib/sweetalert";
 
 type BankAccount = {
   id: number;
@@ -49,8 +50,9 @@ export default function BankAccountsPage() {
   const [showModal, setShowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this bank account?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this bank account");
+    if (confirmed) {
       setAccounts(prev => prev.filter(a => a.id !== id));
     }
   };

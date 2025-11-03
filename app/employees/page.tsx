@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, X, User, Briefcase } from "lucide-react";
+import { showDeleteConfirm } from "@/lib/sweetalert";
 
 type Employee = {
   id: number;
@@ -105,8 +106,9 @@ export default function EmployeesPage() {
     return matchesSearch && matchesDept && matchesStatus;
   });
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this employee?")) {
+  const handleDelete = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this employee");
+    if (confirmed) {
       setEmployees(prev => prev.filter(e => e.id !== id));
     }
   };
