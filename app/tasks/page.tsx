@@ -191,12 +191,46 @@ export default function TaskHubPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    // Prepare CSV data
+    const headers = ["Date", "Employee", "Client/Project", "Description", "Time (hrs)", "Status", "Resource Cost"];
+    const rows = filteredTasks.map((task) => [
+      format(new Date(task.date), "dd/MM/yyyy"),
+      task.employee_name,
+      task.client_name || task.project_name || "-",
+      task.description,
+      task.time_spent?.toString() || "0",
+      task.status,
+      `₹${calculateTaskResourceCostFromState(task.id).toLocaleString("en-IN")}`,
+    ]);
+
+    // Convert to CSV string
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tasks_${format(new Date(), "yyyy-MM-dd")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <DashboardLayout title="Task Hub" breadcrumbs={["Home", "Tasks"]}>
       <div className="space-y-6">
         {/* Header Actions */}
         <div className="flex items-center justify-end gap-3">
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
             <Download className="h-4 w-4" />
             Export
           </button>
