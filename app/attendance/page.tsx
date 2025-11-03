@@ -623,11 +623,13 @@ function MarkAttendanceModal({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.employee_id) {
-      alert("Please select an employee");
+      await import("@/lib/sweetalert").then(({ showAlert }) => 
+        showAlert("Validation Error", "Please select an employee")
+      );
       return;
     }
 
@@ -637,12 +639,12 @@ function MarkAttendanceModal({
       employee_name: formData.employee_name,
       date: formData.date,
       status: formData.status,
-      approval_status: editingRecord ? editingRecord.approval_status : "Approved",
+      approval_status: editingRecord ? editingRecord.approval_status : "Pending",
       check_in: formData.check_in || undefined,
       check_out: formData.check_out || undefined,
       notes: formData.notes || undefined,
-      approved_by: editingRecord?.approved_by || "Admin",
-      approved_at: editingRecord?.approved_at || new Date().toISOString(),
+      approved_by: editingRecord?.approved_by,
+      approved_at: editingRecord?.approved_at,
     };
     onSave(newRecord);
   };
