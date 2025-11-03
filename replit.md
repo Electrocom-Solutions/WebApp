@@ -105,7 +105,16 @@ The frontend is designed to match the database schema provided in the requiremen
   - Bulk "Mark as Paid" with date picker and payment mode selection
   - Payment completion date, payment mode, and payment status columns
   - Full dark theme with xlsx library integration
-- ✅ **Payroll Module**: Simplified with employee type filter, CSV export, payment mode modal
+- ✅ **Payroll Module**: Streamlined employee payroll management with:
+  - Month and year filters (defaults to current month/year)
+  - Employees only (contract workers excluded)
+  - Simplified columns: Employee, Net Amount, Status, Payment Date, Payment Mode
+  - Actions: Eye icon (view breakdown) and Mark as Paid button
+  - Simplified payslip showing only: Base Salary - Leave Deduction = Net Payable
+  - Mark as Paid modal with payment date and payment mode only
+  - Bulk selection and bulk Mark as Paid functionality
+  - CSV export with relevant columns
+  - Full dark theme support
 - ✅ All 20 module pages created with 30 feature enhancements across 9 core modules
 - ✅ Responsive design ready
 - ✅ SweetAlert2 dark theme integration for all alerts and confirmations
