@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ const mockProjects: Project[] = [
 ];
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -136,8 +138,11 @@ export default function ProjectsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => showAlert("Project Details", "Would show tasks, resources, and timeline for this project", "info")}
-                    title="View Details"
+                    onClick={() => {
+                      // Navigate to Tasks page with project filter
+                      router.push(`/tasks?project=${encodeURIComponent(project.name)}`);
+                    }}
+                    title="View Tasks"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>

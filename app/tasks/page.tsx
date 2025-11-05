@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   Filter,
@@ -33,6 +34,7 @@ import { mockClients } from "@/lib/mock-data/clients";
 type PeriodFilter = "today" | "week" | "month" | "custom";
 
 export default function TaskHubPage() {
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [taskResources, setTaskResources] = useState<Record<number, TaskResource[]>>(() => {
     // Initialize resources from mock data, indexed by task_id
@@ -51,6 +53,14 @@ export default function TaskHubPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Check for project filter in URL query params on mount
+  useEffect(() => {
+    const projectParam = searchParams.get("project");
+    if (projectParam) {
+      setProjectFilter(projectParam);
+    }
+  }, [searchParams]);
 
   // Helper to get resources for a task from state
   const getTaskResources = (taskId: number): TaskResource[] => {
