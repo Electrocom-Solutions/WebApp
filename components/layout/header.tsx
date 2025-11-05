@@ -3,11 +3,13 @@
 import { Bell, Moon, Sun, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown";
 import { mockNotifications } from "@/lib/mock-data/notifications";
 
 export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: string[] }) {
+  const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -116,11 +118,23 @@ export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: st
                   <p className="text-xs text-gray-500">admin@electrocom.com</p>
                 </div>
                 <div className="p-2">
-                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <button
+                    onClick={() => {
+                      router.push("/profile");
+                      setShowUserMenu(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
                     <User className="h-4 w-4" />
                     Profile
                   </button>
-                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <button
+                    onClick={() => {
+                      router.push("/settings");
+                      setShowUserMenu(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
                     <Settings className="h-4 w-4" />
                     Settings
                   </button>
