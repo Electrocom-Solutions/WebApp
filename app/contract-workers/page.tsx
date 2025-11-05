@@ -5,26 +5,39 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Upload, Edit, Trash2, X, User, Phone, MapPin } from "lucide-react";
+import { Plus, Search, Upload, Edit, Trash2, X, User, Phone, MapPin, Mail } from "lucide-react";
 import { showDeleteConfirm } from "@/lib/sweetalert";
 
 type ContractWorker = {
   id: number;
-  name: string;
-  worker_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
   phone: string;
-  designation: string;
+  date_of_birth: string;
+  gender: "Male" | "Female";
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  worker_type: "Unskilled" | "Semi-Skilled" | "Skilled";
   monthly_salary: number;
-  address?: string;
+  aadhar_number: string;
+  uan_number: string;
+  department: string;
+  bank_name: string;
+  bank_account_number: string;
+  bank_ifsc: string;
+  bank_branch: string;
+  status: "Available" | "Assigned" | "Inactive";
+  created_at: string;
+  // Legacy fields for backward compatibility
+  name?: string;
+  worker_id?: string;
+  designation?: string;
   project_id?: number;
   project_name?: string;
-  status: "Available" | "Assigned" | "Inactive";
-  bank_name?: string;
-  bank_account_number?: string;
-  bank_ifsc?: string;
-  uan_number?: string;
-  aadhar_number?: string;
-  created_at: string;
 };
 
 type Project = {
@@ -96,15 +109,17 @@ export default function ContractWorkersPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<ContractWorker | null>(null);
 
-  const designations = ["all", ...Array.from(new Set(workers.map(w => w.designation)))];
+  const designations = ["all", ...Array.from(new Set(workers.map(w => w.worker_type || w.designation).filter(Boolean)))];
 
   const filteredWorkers = workers.filter((worker) => {
+    const fullName = worker.name || `${worker.first_name || ''} ${worker.last_name || ''}`.trim();
     const matchesSearch = searchQuery === "" ||
-      worker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      worker.worker_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      worker.phone.includes(searchQuery);
+      fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      worker.worker_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      worker.phone.includes(searchQuery) ||
+      worker.email?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesDesignation = designationFilter === "all" || worker.designation === designationFilter;
+    const matchesDesignation = designationFilter === "all" || worker.designation === designationFilter || worker.worker_type === designationFilter;
     const matchesStatus = statusFilter === "all" || worker.status === statusFilter;
     
     return matchesSearch && matchesDesignation && matchesStatus;
@@ -248,25 +263,31 @@ export default function ContractWorkersPage() {
                         <User className="h-5 w-5 text-sky-600 dark:text-sky-400" />
                       </div>
                       <div>
-                        <div className="font-medium">{worker.name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{worker.worker_id}</div>
+                        <div className="font-medium">{worker.name || `${worker.first_name || ''} ${worker.last_name || ''}`.trim()}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{worker.worker_id || `CW-${worker.id.toString().padStart(3, '0')}`}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
+                    {worker.email && (
+                      <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate max-w-[200px]">{worker.email}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
                       <Phone className="h-4 w-4" />
                       {worker.phone}
                     </div>
-                    {worker.address && (
+                    {(worker.address || worker.city) && (
                       <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-500">
                         <MapPin className="h-4 w-4" />
-                        {worker.address}
+                        {worker.address || `${worker.city || ''}, ${worker.state || ''}`.trim().replace(/^,\s*|,\s*$/g, '')}
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant="secondary">{worker.designation}</Badge>
+                    <Badge variant="secondary">{worker.worker_type || worker.designation || '-'}</Badge>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium dark:text-gray-200">
                     ₹{worker.monthly_salary.toLocaleString('en-IN')}/mo
@@ -342,187 +363,368 @@ function WorkerModal({ worker, onClose, onSave }: {
   onSave: (worker: ContractWorker) => void;
 }) {
   const [formData, setFormData] = useState({
-    name: worker?.name || "",
-    worker_id: worker?.worker_id || `CW-${Date.now().toString().slice(-3)}`,
+    first_name: worker?.first_name || worker?.name?.split(' ')[0] || "",
+    last_name: worker?.last_name || worker?.name?.split(' ').slice(1).join(' ') || "",
+    email: worker?.email || "",
     phone: worker?.phone || "",
-    designation: worker?.designation || "Electrician",
-    monthly_salary: worker?.monthly_salary?.toString() || "",
+    date_of_birth: worker?.date_of_birth || "",
+    gender: (worker?.gender || "Male") as "Male" | "Female",
     address: worker?.address || "",
-    project_id: worker?.project_id || 0,
-    status: worker?.status || "Available",
+    city: worker?.city || "",
+    state: worker?.state || "",
+    pincode: worker?.pincode || "",
+    country: worker?.country || "India",
+    worker_type: (worker?.worker_type || "Semi-Skilled") as "Unskilled" | "Semi-Skilled" | "Skilled",
+    monthly_salary: worker?.monthly_salary?.toString() || "",
+    aadhar_number: worker?.aadhar_number || "",
+    uan_number: worker?.uan_number || "",
+    department: worker?.department || "",
     bank_name: worker?.bank_name || "",
     bank_account_number: worker?.bank_account_number || "",
     bank_ifsc: worker?.bank_ifsc || "",
-    uan_number: worker?.uan_number || "",
-    aadhar_number: worker?.aadhar_number || "",
+    bank_branch: worker?.bank_branch || "",
+    status: worker?.status || "Available",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedProject = mockProjects.find(p => p.id === formData.project_id);
     const savedWorker: ContractWorker = {
       id: worker?.id || Date.now(),
-      name: formData.name,
-      worker_id: formData.worker_id,
-      phone: formData.phone,
-      designation: formData.designation,
-      monthly_salary: parseInt(formData.monthly_salary),
-      address: formData.address || undefined,
-      project_id: formData.project_id > 0 ? formData.project_id : undefined,
-      project_name: selectedProject ? selectedProject.name : undefined,
-      status: formData.status,
-      bank_name: formData.bank_name || undefined,
-      bank_account_number: formData.bank_account_number || undefined,
-      bank_ifsc: formData.bank_ifsc || undefined,
-      uan_number: formData.uan_number || undefined,
-      aadhar_number: formData.aadhar_number || undefined,
+      ...formData,
+      monthly_salary: parseInt(formData.monthly_salary) || 0,
       created_at: worker?.created_at || new Date().toISOString(),
+      // Legacy fields for backward compatibility
+      name: `${formData.first_name} ${formData.last_name}`.trim(),
+      worker_id: worker?.worker_id || `CW-${Date.now().toString().slice(-3)}`,
+      designation: formData.worker_type,
     };
     onSave(savedWorker);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
-          <h2 className="text-xl font-semibold">
-            {worker ? "Edit Worker" : "Add Worker"}
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-800 p-6 flex items-center justify-between z-10">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            {worker ? "Edit Contract Worker" : "Add Contract Worker"}
           </h2>
-          <button onClick={onClose}>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                Name <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Basic details about the contract worker</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Worker ID</label>
-              <Input value={formData.worker_id} disabled />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Phone <span className="text-red-500">*</span></label>
-              <Input
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Designation</label>
-              <select
-                value={formData.designation}
-                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-gray-200"
-              >
-                <option value="Electrician">Electrician</option>
-                <option value="Helper">Helper</option>
-                <option value="Fitter">Fitter</option>
-                <option value="Technician">Technician</option>
-                <option value="Supervisor">Supervisor</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Monthly Salary (₹) <span className="text-red-500">*</span></label>
-              <Input
-                type="number"
-                value={formData.monthly_salary}
-                onChange={(e) => setFormData({ ...formData, monthly_salary: e.target.value })}
-                required
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Address</label>
-              <Input
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-gray-200"
-              >
-                <option value="Available">Available</option>
-                <option value="Assigned">Assigned</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Assigned Project</label>
-              <select
-                value={formData.project_id}
-                onChange={(e) => setFormData({ ...formData, project_id: Number(e.target.value) })}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-gray-200"
-              >
-                <option value={0}>Not Assigned</option>
-                {mockProjects.map(project => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  required
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  required
+                  placeholder="Enter last name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Date of Birth <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value as "Male" | "Female" })}
+                  required
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div className="border-t dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Bank Details & ID Proof</h3>
+          {/* Contact Details Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Contact Details</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Email, phone, and address information</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  required
+                  rows={2}
+                  placeholder="Enter full address"
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  City <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  required
+                  placeholder="Enter city"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  State <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  required
+                  placeholder="Enter state"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Pincode <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                  required
+                  placeholder="Enter pincode"
+                  maxLength={6}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  required
+                  placeholder="Enter country"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Work Details Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Work Details</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Employment and designation information</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Worker Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.worker_type}
+                  onChange={(e) => setFormData({ ...formData, worker_type: e.target.value as "Unskilled" | "Semi-Skilled" | "Skilled" })}
+                  required
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="Unskilled">Unskilled</option>
+                  <option value="Semi-Skilled">Semi-Skilled</option>
+                  <option value="Skilled">Skilled</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Department <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  required
+                  placeholder="Enter department"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Monthly Salary (₹) <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="number"
+                  value={formData.monthly_salary}
+                  onChange={(e) => setFormData({ ...formData, monthly_salary: e.target.value })}
+                  required
+                  placeholder="Enter monthly salary"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Status <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  required
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="Available">Available</option>
+                  <option value="Assigned">Assigned</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Identity Documents Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Identity Documents</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Official identification documents</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Aadhar Number <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.aadhar_number}
+                  onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value.replace(/\D/g, '').slice(0, 12) })}
+                  required
+                  placeholder="Enter 12-digit Aadhar number"
+                  maxLength={12}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  UAN Number <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.uan_number}
+                  onChange={(e) => setFormData({ ...formData, uan_number: e.target.value.replace(/\D/g, '').slice(0, 12) })}
+                  required
+                  placeholder="Enter UAN number"
+                  maxLength={12}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bank Details Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bank Details</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Banking and account information</p>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Bank Name</label>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Bank Name <span className="text-red-500">*</span>
+                </label>
                 <Input
                   value={formData.bank_name}
                   onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                  required
                   placeholder="e.g., State Bank of India"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Account Number</label>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Bank Account Number <span className="text-red-500">*</span>
+                </label>
                 <Input
+                  type="text"
                   value={formData.bank_account_number}
-                  onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
-                  placeholder="Account number"
+                  onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value.replace(/\D/g, '') })}
+                  required
+                  placeholder="Enter account number"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">IFSC Code</label>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  IFSC Code <span className="text-red-500">*</span>
+                </label>
                 <Input
+                  type="text"
                   value={formData.bank_ifsc}
-                  onChange={(e) => setFormData({ ...formData, bank_ifsc: e.target.value })}
-                  placeholder="e.g., SBIN0001234"
+                  onChange={(e) => setFormData({ ...formData, bank_ifsc: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) })}
+                  required
+                  placeholder="Enter IFSC code"
+                  maxLength={11}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">UAN Number</label>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Bank Branch <span className="text-red-500">*</span>
+                </label>
                 <Input
-                  value={formData.uan_number}
-                  onChange={(e) => setFormData({ ...formData, uan_number: e.target.value })}
-                  placeholder="Universal Account Number"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Aadhar Card Number</label>
-                <Input
-                  value={formData.aadhar_number}
-                  onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
-                  placeholder="XXXX XXXX XXXX"
+                  value={formData.bank_branch}
+                  onChange={(e) => setFormData({ ...formData, bank_branch: e.target.value })}
+                  required
+                  placeholder="Enter bank branch name"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-800">
+          <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
