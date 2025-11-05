@@ -7,14 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle login logic here
-    console.log("Login attempt:", { email, password, rememberMe });
+    console.log("Login attempt:", { loginId, password, rememberMe });
   };
 
   return (
@@ -48,18 +48,18 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label 
-                htmlFor="email"
+                htmlFor="loginId"
                 className="text-sm font-medium"
                 style={{ color: "#FFFFFF" }}
               >
-                Email
+                Email / Username / Mobile Number
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="loginId"
+                type="text"
+                placeholder="Enter your email, username, or mobile number"
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
                 required
                 className="transition-all duration-200 focus:ring-2 focus:ring-opacity-50"
                 style={{
@@ -150,22 +150,6 @@ export default function LoginPage() {
             >
               Sign In
             </Button>
-
-            <div className="text-center pt-2">
-              <a
-                href="#"
-                className="text-sm transition-colors duration-200 hover:underline"
-                style={{ color: "#007BFF" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#0056CC";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#007BFF";
-                }}
-              >
-                Forgot Password?
-              </a>
-            </div>
           </form>
         </CardContent>
       </Card>
