@@ -1,190 +1,195 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, CreditCard, Calendar, Bell, Plus, Edit, Trash2, X } from "lucide-react";
-import { BankAccount, Holiday, SystemSettings } from "@/types";
-import { mockBankAccounts, mockHolidays, mockSystemSettings } from "@/lib/mock-data/settings";
+import { Badge } from "@/components/ui/badge";
+import { Building2, Plus, Edit, Trash2, X, Search } from "lucide-react";
 import { showSuccess, showDeleteConfirm } from "@/lib/sweetalert";
 
-type Tab = "company" | "bank-accounts" | "holidays" | "notifications";
+type Employee = {
+  id: number;
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  name?: string; // Legacy field
+};
+
+type Firm = {
+  id: number;
+  firm_name: string;
+  firm_type: string;
+  firm_owner_profile_id: number;
+  firm_owner_profile_name: string;
+  firm_official_email: string;
+  firm_official_mobile: string;
+  address: string;
+  gst_number: string;
+  pan_number: string;
+  created_at: string;
+};
+
+// Mock employees list for Firm Owner Profile
+const mockEmployees: Employee[] = [
+  {
+    id: 1,
+    employee_id: "EMP-001",
+    first_name: "Rajesh",
+    last_name: "Kumar",
+    name: "Rajesh Kumar",
+    email: "rajesh@electrocom.in",
+    phone: "+91 98765 43210",
+  },
+  {
+    id: 2,
+    employee_id: "EMP-002",
+    first_name: "Priya",
+    last_name: "Sharma",
+    name: "Priya Sharma",
+    email: "priya@electrocom.in",
+    phone: "+91 98765 43220",
+  },
+  {
+    id: 3,
+    employee_id: "EMP-003",
+    first_name: "Amit",
+    last_name: "Patel",
+    name: "Amit Patel",
+    email: "amit@electrocom.in",
+    phone: "+91 98765 43230",
+  },
+];
+
+const mockFirms: Firm[] = [
+  {
+    id: 1,
+    firm_name: "Electrocom Pvt. Ltd.",
+    firm_type: "Private Limited",
+    firm_owner_profile_id: 1,
+    firm_owner_profile_name: "Rajesh Kumar",
+    firm_official_email: "info@electrocom.in",
+    firm_official_mobile: "+91 98765 43210",
+    address: "123, Andheri West, Mumbai, Maharashtra - 400053",
+    gst_number: "27AABCU9603R1ZM",
+    pan_number: "AABCU9603R",
+    created_at: "2024-01-15T00:00:00Z",
+  },
+];
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("company");
-  const [settings, setSettings] = useState<SystemSettings>(mockSystemSettings);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(mockBankAccounts);
-  const [holidays, setHolidays] = useState<Holiday[]>(mockHolidays);
-  const [showBankModal, setShowBankModal] = useState(false);
-  const [showHolidayModal, setShowHolidayModal] = useState(false);
-  const [selectedBank, setSelectedBank] = useState<BankAccount | null>(null);
-  const [selectedHoliday, setSelectedHoliday] = useState<Holiday | null>(null);
+  const [firms, setFirms] = useState<Firm[]>(mockFirms);
+  const [showFirmModal, setShowFirmModal] = useState(false);
+  const [selectedFirm, setSelectedFirm] = useState<Firm | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const tabs = [
-    { id: "company" as Tab, label: "Company", icon: Building2 },
-    { id: "bank-accounts" as Tab, label: "Bank Accounts", icon: CreditCard },
-    { id: "holidays" as Tab, label: "Holiday Calendar", icon: Calendar },
-    { id: "notifications" as Tab, label: "Notifications", icon: Bell },
-  ];
+  const filteredFirms = useMemo(() => {
+    if (!searchQuery) return firms;
+    const query = searchQuery.toLowerCase();
+    return firms.filter(firm =>
+      firm.firm_name.toLowerCase().includes(query) ||
+      firm.firm_type.toLowerCase().includes(query) ||
+      firm.firm_owner_profile_name.toLowerCase().includes(query) ||
+      firm.firm_official_email.toLowerCase().includes(query) ||
+      firm.gst_number.toLowerCase().includes(query) ||
+      firm.pan_number.toLowerCase().includes(query)
+    );
+  }, [firms, searchQuery]);
 
-  const handleSaveCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await showSuccess("Settings Saved", "Company settings saved successfully!");
-  };
-
-  const handleDeleteBank = async (id: number) => {
-    const confirmed = await showDeleteConfirm("this bank account");
+  const handleDeleteFirm = async (id: number) => {
+    const confirmed = await showDeleteConfirm("this firm");
     if (confirmed) {
-      setBankAccounts(prev => prev.filter(b => b.id !== id));
-    }
-  };
-
-  const handleDeleteHoliday = async (id: number) => {
-    const confirmed = await showDeleteConfirm("this holiday");
-    if (confirmed) {
-      setHolidays(prev => prev.filter(h => h.id !== id));
+      setFirms(prev => prev.filter(f => f.id !== id));
+      await showSuccess("Firm Deleted", "Firm has been deleted successfully!");
     }
   };
 
   return (
     <DashboardLayout title="Settings" breadcrumbs={["Home", "Settings"]}>
       <div className="space-y-6">
-        <div className="border-b dark:border-gray-800">
-          <nav className="flex gap-4">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
-                    activeTab === tab.id
-                      ? "border-sky-500 text-sky-600 dark:text-sky-400"
-                      : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="font-medium">{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Firm Management</h2>
+            <p className="text-gray-500 dark:text-gray-400">Manage your firms and company information</p>
+          </div>
+          <Button onClick={() => {
+            setSelectedFirm(null);
+            setShowFirmModal(true);
+          }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Firm
+          </Button>
         </div>
 
-        {activeTab === "company" && (
-          <form onSubmit={handleSaveCompany} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Company Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Company Name</label>
-                    <Input
-                      value={settings.company_name}
-                      onChange={(e) => setSettings({ ...settings, company_name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email</label>
-                    <Input
-                      type="email"
-                      value={settings.company_email}
-                      onChange={(e) => setSettings({ ...settings, company_email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Phone</label>
-                    <Input
-                      value={settings.company_phone}
-                      onChange={(e) => setSettings({ ...settings, company_phone: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Website</label>
-                    <Input
-                      value={settings.company_website}
-                      onChange={(e) => setSettings({ ...settings, company_website: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">GST Number</label>
-                    <Input
-                      value={settings.gst_number}
-                      onChange={(e) => setSettings({ ...settings, gst_number: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">PAN Number</label>
-                    <Input
-                      value={settings.pan_number}
-                      onChange={(e) => setSettings({ ...settings, pan_number: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Address</label>
-                  <textarea
-                    value={settings.company_address}
-                    onChange={(e) => setSettings({ ...settings, company_address: e.target.value })}
-                    rows={3}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    required
-                  />
-                </div>
-                <Button type="submit">Save Changes</Button>
-              </CardContent>
-            </Card>
-          </form>
-        )}
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <Input
+            type="search"
+            placeholder="Search by firm name, type, owner, email, GST, or PAN number..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
 
-        {activeTab === "bank-accounts" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Bank Accounts</h3>
-              <Button onClick={() => {
-                setSelectedBank(null);
-                setShowBankModal(true);
-              }}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Bank Account
-              </Button>
-            </div>
-            <div className="grid gap-4">
-              {bankAccounts.map((bank) => (
-                <Card key={bank.id}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold">{bank.bank_name}</h4>
-                          {bank.is_primary && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
-                              Primary
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {bank.account_holder_name}
-                        </p>
-                        <div className="text-sm text-gray-500 mt-2">
-                          <p>Account: {bank.account_number}</p>
-                          <p>IFSC: {bank.ifsc_code} | Branch: {bank.branch}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
+        {/* Firms Table */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Firm Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Firm Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Owner Profile
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Mobile
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    GST Number
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    PAN Number
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                {filteredFirms.map((firm) => (
+                  <tr key={firm.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="px-6 py-4">
+                      <div className="font-medium">{firm.firm_name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{firm.address}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="secondary">{firm.firm_type}</Badge>
+                    </td>
+                    <td className="px-6 py-4 text-sm">{firm.firm_owner_profile_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{firm.firm_official_email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{firm.firm_official_mobile}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{firm.gst_number}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{firm.pan_number}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            setSelectedBank(bank);
-                            setShowBankModal(true);
+                            setSelectedFirm(firm);
+                            setShowFirmModal(true);
                           }}
                         >
                           <Edit className="h-4 w-4" />
@@ -192,144 +197,63 @@ export default function SettingsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeleteBank(bank.id)}
+                          onClick={() => handleDeleteFirm(firm.id)}
                           className="text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
 
-        {activeTab === "holidays" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Holiday Calendar</h3>
-              <Button onClick={() => {
-                setSelectedHoliday(null);
-                setShowHolidayModal(true);
-              }}>
+          {filteredFirms.length === 0 && firms.length > 0 && (
+            <div className="text-center py-12">
+              <Building2 className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600" />
+              <h3 className="mt-4 text-lg font-medium">No firms found</h3>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Try adjusting your search query
+              </p>
+            </div>
+          )}
+
+          {firms.length === 0 && (
+            <div className="text-center py-12">
+              <Building2 className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600" />
+              <h3 className="mt-4 text-lg font-medium">No firms</h3>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Get started by creating your first firm
+              </p>
+              <Button className="mt-4" onClick={() => setShowFirmModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Holiday
+                Create Firm
               </Button>
             </div>
-            <Card>
-              <CardContent className="p-0">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-800/50">
-                    <tr>
-                      <th className="text-left p-3 text-sm font-medium">Date</th>
-                      <th className="text-left p-3 text-sm font-medium">Holiday Name</th>
-                      <th className="text-left p-3 text-sm font-medium">Type</th>
-                      <th className="text-right p-3 text-sm font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y dark:divide-gray-800">
-                    {holidays.map((holiday) => (
-                      <tr key={holiday.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="p-3">
-                          {new Date(holiday.date).toLocaleDateString()}
-                        </td>
-                        <td className="p-3 font-medium">{holiday.name}</td>
-                        <td className="p-3">
-                          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-                            {holiday.type}
-                            {holiday.is_optional && " (Optional)"}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteHoliday(holiday.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "notifications" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-gray-500">Receive notifications via email</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.email_notifications_enabled}
-                  onChange={(e) => setSettings({ ...settings, email_notifications_enabled: e.target.checked })}
-                  className="h-4 w-4"
-                />
-              </div>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium">SMS Notifications</p>
-                  <p className="text-sm text-gray-500">Receive notifications via SMS</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.sms_notifications_enabled}
-                  onChange={(e) => setSettings({ ...settings, sms_notifications_enabled: e.target.checked })}
-                  className="h-4 w-4"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Reminder Days Before</label>
-                <Input
-                  type="number"
-                  value={settings.reminder_days_before}
-                  onChange={(e) => setSettings({ ...settings, reminder_days_before: parseInt(e.target.value) })}
-                  min="1"
-                  max="30"
-                />
-              </div>
-              <Button onClick={() => showSuccess("Preferences Saved", "Notification settings saved successfully!")}>
-                Save Preferences
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+          )}
+        </div>
       </div>
 
-      {showBankModal && (
-        <BankModal
-          bank={selectedBank}
-          onClose={() => setShowBankModal(false)}
-          onSave={(bank) => {
-            if (selectedBank) {
-              setBankAccounts(prev => prev.map(b => b.id === bank.id ? bank : b));
-            } else {
-              setBankAccounts(prev => [bank, ...prev]);
-            }
-            setShowBankModal(false);
+      {showFirmModal && (
+        <FirmModal
+          firm={selectedFirm}
+          employees={mockEmployees}
+          onClose={() => {
+            setShowFirmModal(false);
+            setSelectedFirm(null);
           }}
-        />
-      )}
-
-      {showHolidayModal && (
-        <HolidayModal
-          onClose={() => setShowHolidayModal(false)}
-          onSave={(holiday) => {
-            setHolidays(prev => [holiday, ...prev]);
-            setShowHolidayModal(false);
+          onSave={(firm) => {
+            if (selectedFirm) {
+              setFirms(prev => prev.map(f => f.id === firm.id ? firm : f));
+              showSuccess("Firm Updated", "Firm has been updated successfully!");
+            } else {
+              setFirms(prev => [firm, ...prev]);
+              showSuccess("Firm Created", "Firm has been created successfully!");
+            }
+            setShowFirmModal(false);
+            setSelectedFirm(null);
           }}
         />
       )}
@@ -337,179 +261,292 @@ export default function SettingsPage() {
   );
 }
 
-function BankModal({
-  bank,
+// Firm Modal Component
+function FirmModal({
+  firm,
+  employees,
   onClose,
   onSave,
 }: {
-  bank: BankAccount | null;
+  firm: Firm | null;
+  employees: Employee[];
   onClose: () => void;
-  onSave: (bank: BankAccount) => void;
+  onSave: (firm: Firm) => void;
 }) {
   const [formData, setFormData] = useState({
-    bank_name: bank?.bank_name || "",
-    account_number: bank?.account_number || "",
-    ifsc_code: bank?.ifsc_code || "",
-    branch: bank?.branch || "",
-    account_holder_name: bank?.account_holder_name || "",
-    is_primary: bank?.is_primary || false,
+    firm_name: firm?.firm_name || "",
+    firm_type: firm?.firm_type || "",
+    firm_owner_profile_id: firm?.firm_owner_profile_id || 0,
+    firm_owner_profile_name: firm?.firm_owner_profile_name || "",
+    owner_search: "",
+    firm_official_email: firm?.firm_official_email || "",
+    firm_official_mobile: firm?.firm_official_mobile || "",
+    address: firm?.address || "",
+    gst_number: firm?.gst_number || "",
+    pan_number: firm?.pan_number || "",
   });
+  const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
+
+  // Update form data when firm changes (for editing)
+  useEffect(() => {
+    if (firm) {
+      setFormData({
+        firm_name: firm.firm_name,
+        firm_type: firm.firm_type,
+        firm_owner_profile_id: firm.firm_owner_profile_id,
+        firm_owner_profile_name: firm.firm_owner_profile_name,
+        owner_search: firm.firm_owner_profile_name,
+        firm_official_email: firm.firm_official_email,
+        firm_official_mobile: firm.firm_official_mobile,
+        address: firm.address,
+        gst_number: firm.gst_number,
+        pan_number: firm.pan_number,
+      });
+    } else {
+      setFormData({
+        firm_name: "",
+        firm_type: "",
+        firm_owner_profile_id: 0,
+        firm_owner_profile_name: "",
+        owner_search: "",
+        firm_official_email: "",
+        firm_official_mobile: "",
+        address: "",
+        gst_number: "",
+        pan_number: "",
+      });
+    }
+  }, [firm]);
+
+  // Filter employees based on search
+  const filteredEmployees = useMemo(() => {
+    return employees.filter((employee) => {
+      const searchTerm = formData.owner_search.toLowerCase();
+      if (!searchTerm) return true;
+      const fullName = `${employee.first_name} ${employee.last_name}`.toLowerCase();
+      const name = employee.name?.toLowerCase() || fullName;
+      return (
+        name.includes(searchTerm) ||
+        employee.employee_id.toLowerCase().includes(searchTerm) ||
+        employee.email.toLowerCase().includes(searchTerm) ||
+        employee.phone.includes(searchTerm)
+      );
+    });
+  }, [employees, formData.owner_search]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.owner-dropdown-container')) {
+        setShowOwnerDropdown(false);
+      }
+    };
+
+    if (showOwnerDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showOwnerDropdown]);
+
+  const handleOwnerSelect = (employee: Employee) => {
+    const fullName = `${employee.first_name} ${employee.last_name}`;
+    setFormData({
+      ...formData,
+      firm_owner_profile_id: employee.id,
+      firm_owner_profile_name: employee.name || fullName,
+      owner_search: employee.name || fullName,
+    });
+    setShowOwnerDropdown(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const savedBank: BankAccount = {
-      id: bank?.id || Date.now(),
-      ...formData,
-      created_at: bank?.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    if (!formData.firm_owner_profile_id) {
+      alert("Please select a Firm Owner Profile");
+      return;
+    }
+    const savedFirm: Firm = {
+      id: firm?.id || Date.now(),
+      firm_name: formData.firm_name,
+      firm_type: formData.firm_type,
+      firm_owner_profile_id: formData.firm_owner_profile_id,
+      firm_owner_profile_name: formData.firm_owner_profile_name,
+      firm_official_email: formData.firm_official_email,
+      firm_official_mobile: formData.firm_official_mobile,
+      address: formData.address,
+      gst_number: formData.gst_number,
+      pan_number: formData.pan_number,
+      created_at: firm?.created_at || new Date().toISOString(),
     };
-    onSave(savedBank);
+    onSave(savedFirm);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
-          <h2 className="text-xl font-semibold">{bank ? "Edit" : "Add"} Bank Account</h2>
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
+          <h2 className="text-xl font-semibold">
+            {firm ? "Edit Firm" : "Create Firm"}
+          </h2>
           <button onClick={onClose}>
             <X className="h-5 w-5" />
           </button>
         </div>
+
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Bank Name *</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Firm Name <span className="text-red-500">*</span>
+            </label>
             <Input
-              value={formData.bank_name}
-              onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+              value={formData.firm_name}
+              onChange={(e) => setFormData({ ...formData, firm_name: e.target.value })}
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Account Number *</label>
-            <Input
-              value={formData.account_number}
-              onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">IFSC Code *</label>
-            <Input
-              value={formData.ifsc_code}
-              onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Branch *</label>
-            <Input
-              value={formData.branch}
-              onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Account Holder Name *</label>
-            <Input
-              value={formData.account_holder_name}
-              onChange={(e) => setFormData({ ...formData, account_holder_name: e.target.value })}
-              required
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.is_primary}
-              onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
-              className="h-4 w-4"
-            />
-            <label className="text-sm font-medium">Set as Primary Account</label>
-          </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">{bank ? "Update" : "Add"} Account</Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
-function HolidayModal({ onClose, onSave }: { onClose: () => void; onSave: (holiday: Holiday) => void }) {
-  const [formData, setFormData] = useState({
-    date: "",
-    name: "",
-    type: "National" as "National" | "Regional" | "Company",
-    is_optional: false,
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const savedHoliday: Holiday = {
-      id: Date.now(),
-      ...formData,
-      created_at: new Date().toISOString(),
-    };
-    onSave(savedHoliday);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
-          <h2 className="text-xl font-semibold">Add Holiday</h2>
-          <button onClick={onClose}>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Date *</label>
-            <Input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Holiday Name *</label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Diwali"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Type *</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Firm Type <span className="text-red-500">*</span>
+            </label>
             <select
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+              value={formData.firm_type}
+              onChange={(e) => setFormData({ ...formData, firm_type: e.target.value })}
               required
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-white"
             >
-              <option value="National">National</option>
-              <option value="Regional">Regional</option>
-              <option value="Company">Company</option>
+              <option value="">Select Firm Type</option>
+              <option value="Sole Proprietorship">Sole Proprietorship</option>
+              <option value="Partnership">Partnership</option>
+              <option value="Private Limited">Private Limited</option>
+              <option value="Public Limited">Public Limited</option>
+              <option value="LLP">Limited Liability Partnership (LLP)</option>
+              <option value="HUF">Hindu Undivided Family (HUF)</option>
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.is_optional}
-              onChange={(e) => setFormData({ ...formData, is_optional: e.target.checked })}
-              className="h-4 w-4"
-            />
-            <label className="text-sm font-medium">Optional Holiday</label>
+
+          {/* Firm Owner Profile - Searchable Dropdown */}
+          <div className="relative owner-dropdown-container">
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Firm Owner Profile <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.owner_search || formData.firm_owner_profile_name}
+                onChange={(e) => {
+                  setFormData({ ...formData, owner_search: e.target.value, firm_owner_profile_id: 0, firm_owner_profile_name: "" });
+                  setShowOwnerDropdown(true);
+                }}
+                onFocus={() => {
+                  if (employees.length > 0) {
+                    setShowOwnerDropdown(true);
+                  }
+                }}
+                placeholder="Search by employee ID, name, email, or phone number"
+                required
+                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+              {showOwnerDropdown && filteredEmployees.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredEmployees.map((employee) => {
+                    const fullName = `${employee.first_name} ${employee.last_name}`;
+                    const displayName = employee.name || fullName;
+                    return (
+                      <button
+                        key={employee.id}
+                        type="button"
+                        onClick={() => handleOwnerSelect(employee)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <div className="font-medium">{displayName}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {employee.employee_id} • {employee.email} • {employee.phone}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {showOwnerDropdown && filteredEmployees.length === 0 && formData.owner_search && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg p-4 text-sm text-gray-500 dark:text-gray-400">
+                  No employees found
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Firm Official Email <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="email"
+                value={formData.firm_official_email}
+                onChange={(e) => setFormData({ ...formData, firm_official_email: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Firm Official Mobile Number <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="tel"
+                value={formData.firm_official_mobile}
+                onChange={(e) => setFormData({ ...formData, firm_official_mobile: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Address <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              rows={3}
+              required
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                GST Number
+              </label>
+              <Input
+                value={formData.gst_number}
+                onChange={(e) => setFormData({ ...formData, gst_number: e.target.value.toUpperCase() })}
+                placeholder="e.g., 27AABCU9603R1ZM"
+                maxLength={15}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                PAN Number
+              </label>
+              <Input
+                value={formData.pan_number}
+                onChange={(e) => setFormData({ ...formData, pan_number: e.target.value.toUpperCase() })}
+                placeholder="e.g., AABCU9603R"
+                maxLength={10}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-800">
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Add Holiday</Button>
+            <Button type="submit">
+              {firm ? "Update" : "Create"} Firm
+            </Button>
           </div>
         </form>
       </div>
