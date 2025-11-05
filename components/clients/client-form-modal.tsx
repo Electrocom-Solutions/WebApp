@@ -151,20 +151,6 @@ export function ClientFormModal({
                         <p className="mt-1 text-sm text-red-600">{errors.name}</p>
                       )}
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Business Name (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.business_name || ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, business_name: e.target.value })
-                        }
-                        className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      />
-                    </div>
                   </div>
                 </div>
 
@@ -235,24 +221,6 @@ export function ClientFormModal({
                           {errors.primary_contact_phone}
                         </p>
                       )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Secondary Contact (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.secondary_contact || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            secondary_contact: e.target.value,
-                          })
-                        }
-                        className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="Phone or email"
-                      />
                     </div>
                   </div>
                 </div>
@@ -351,30 +319,6 @@ export function ClientFormModal({
                     Additional Information
                   </h3>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Tags
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.tags?.join(", ") || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            tags: e.target.value
-                              .split(",")
-                              .map((tag) => tag.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                        placeholder="premium, vip, long-term"
-                        className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      />
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Separate tags with commas
-                      </p>
-                    </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Notes
