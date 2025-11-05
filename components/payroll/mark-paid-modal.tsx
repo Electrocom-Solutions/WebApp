@@ -9,12 +9,13 @@ interface MarkPaidModalProps {
   payroll: PayrollRecord;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (paymentMode: PaymentMode, paymentDate: string) => void;
+  onSubmit: (paymentMode: PaymentMode, paymentDate: string, bankTransactionRef?: string) => void;
 }
 
 export function MarkPaidModal({ payroll, isOpen, onClose, onSubmit }: MarkPaidModalProps) {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("Bank Transfer");
   const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [bankTransactionRef, setBankTransactionRef] = useState("");
 
   if (!isOpen) return null;
 
@@ -24,7 +25,7 @@ export function MarkPaidModal({ payroll, isOpen, onClose, onSubmit }: MarkPaidMo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(paymentMode, paymentDate);
+    onSubmit(paymentMode, paymentDate, bankTransactionRef || undefined);
   };
 
   return (
@@ -101,6 +102,20 @@ export function MarkPaidModal({ payroll, isOpen, onClose, onSubmit }: MarkPaidMo
                   <option value="Bank Transfer">Bank Transfer</option>
                   <option value="UPI">UPI</option>
                 </select>
+              </div>
+
+              <div>
+                <label htmlFor="bank-transaction-ref" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Bank Transaction Reference Number
+                </label>
+                <input
+                  id="bank-transaction-ref"
+                  type="text"
+                  value={bankTransactionRef}
+                  onChange={(e) => setBankTransactionRef(e.target.value)}
+                  placeholder="Enter transaction reference number (optional)"
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
               </div>
             </div>
 

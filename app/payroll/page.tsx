@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   IndianRupee,
   Users,
@@ -11,6 +11,9 @@ import {
   Search,
   Calendar,
   CheckCircle,
+  Plus,
+  Edit,
+  X,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { mockPayrollRecords } from "@/lib/mock-data/payroll";
@@ -42,6 +45,18 @@ export default function PayrollPage() {
   const [showPayslipModal, setShowPayslipModal] = useState(false);
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [showBulkMarkPaidModal, setShowBulkMarkPaidModal] = useState(false);
+  const [showCreatePayrollModal, setShowCreatePayrollModal] = useState(false);
+  const [showEditPayrollSlideOver, setShowEditPayrollSlideOver] = useState(false);
+  const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
+
+  // Mock employees list for payroll creation
+  const mockEmployees = [
+    { id: 101, name: "Rajesh Kumar" },
+    { id: 102, name: "Priya Sharma" },
+    { id: 103, name: "Amit Patel" },
+    { id: 104, name: "Anita Desai" },
+    { id: 105, name: "Deepak Verma" },
+  ];
 
   const years = useMemo(() => {
     const startYear = 2020;
@@ -85,7 +100,7 @@ export default function PayrollPage() {
     setShowMarkPaidModal(true);
   };
 
-  const handleMarkPaidSubmit = async (paymentMode: PaymentMode, paymentDate: string) => {
+  const handleMarkPaidSubmit = async (paymentMode: PaymentMode, paymentDate: string, bankTransactionRef?: string) => {
     if (!selectedPayroll) return;
 
     setPayrollRecords((prev) =>
@@ -96,6 +111,7 @@ export default function PayrollPage() {
               payment_status: "Paid" as PaymentStatus,
               payment_mode: paymentMode,
               payment_date: paymentDate,
+              bank_transaction_ref: bankTransactionRef || record.bank_transaction_ref,
             }
           : record
       )
@@ -293,6 +309,16 @@ export default function PayrollPage() {
               <Download className="h-4 w-4" />
               Export CSV
             </button>
+            <button
+              onClick={() => {
+                setEditingPayroll(null);
+                setShowCreatePayrollModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+            >
+              <Plus className="h-4 w-4" />
+              Add Payroll
+            </button>
           </div>
         </div>
 
@@ -402,6 +428,16 @@ export default function PayrollPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => {
+                            setEditingPayroll(record);
+                            setShowEditPayrollSlideOver(true);
+                          }}
+                          className="rounded p-1 text-sky-600 hover:bg-sky-50 hover:text-sky-900 dark:text-sky-400 dark:hover:bg-sky-900/30"
+                          title="Edit Payroll"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
                         {record.payment_status === "Pending" && (
                           <button
                             onClick={() => handleMarkPaid(record)}
@@ -457,6 +493,42 @@ export default function PayrollPage() {
         onClose={() => setShowBulkMarkPaidModal(false)}
         onSubmit={handleBulkMarkPaidSubmit}
       />
+
+      {/* Create Payroll Modal */}
+      {showCreatePayrollModal && (
+        <CreatePayrollModal
+          employees={mockEmployees}
+          onClose={() => setShowCreatePayrollModal(false)}
+          onSave={(payroll) => {
+            setPayrollRecords((prev) => [payroll, ...prev]);
+            setShowCreatePayrollModal(false);
+            showSuccess("Payroll Created", `Payroll entry created for ${payroll.employee_name}`);
+          }}
+        />
+      )}
+
+      {/* Edit Payroll SlideOver */}
+      {editingPayroll && (
+        <EditPayrollSlideOver
+          payroll={editingPayroll}
+          employees={mockEmployees}
+          isOpen={showEditPayrollSlideOver}
+          onClose={() => {
+            setShowEditPayrollSlideOver(false);
+            setEditingPayroll(null);
+          }}
+          onSave={(updatedPayroll) => {
+            setPayrollRecords((prev) =>
+              prev.map((record) =>
+                record.id === updatedPayroll.id ? updatedPayroll : record
+              )
+            );
+            setShowEditPayrollSlideOver(false);
+            setEditingPayroll(null);
+            showSuccess("Payroll Updated", `Payroll entry updated for ${updatedPayroll.employee_name}`);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }
@@ -567,6 +639,641 @@ function BulkMarkPaidModal({
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Create Payroll Modal Component
+function CreatePayrollModal({
+  employees,
+  onClose,
+  onSave,
+}: {
+  employees: { id: number; name: string }[];
+  onClose: () => void;
+  onSave: (payroll: PayrollRecord) => void;
+}) {
+  const [formData, setFormData] = useState({
+    employee_id: 0,
+    employee_name: "",
+    employee_search: "",
+    payroll_status: "Pending" as PaymentStatus,
+    period_from: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd"),
+    period_to: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), "yyyy-MM-dd"),
+    working_days: 26,
+    days_present: 0,
+    net_amount: 0,
+    payment_date: "",
+    payment_mode: "" as PaymentMode | "",
+    bank_transaction_ref: "",
+    notes: "",
+  });
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+
+  // Filter employees based on search
+  const filteredEmployees = employees.filter((employee) => {
+    const searchTerm = formData.employee_search.toLowerCase();
+    if (!searchTerm) return true;
+    return (
+      employee.name.toLowerCase().includes(searchTerm) ||
+      employee.id.toString().includes(formData.employee_search)
+    );
+  });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.employee-dropdown-container')) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+
+    if (showEmployeeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showEmployeeDropdown]);
+
+  const handleEmployeeSelect = (employee: { id: number; name: string }) => {
+    setFormData({
+      ...formData,
+      employee_id: employee.id,
+      employee_name: employee.name,
+      employee_search: employee.name,
+    });
+    setShowEmployeeDropdown(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.employee_id) {
+      showError("Validation Error", "Please select an employee");
+      return;
+    }
+
+    const selectedEmployee = employees.find(e => e.id === formData.employee_id);
+    if (!selectedEmployee) return;
+
+    // Calculate base salary from net amount (simplified - in real app, this would be more complex)
+    const baseSalary = formData.net_amount || 0;
+
+    const newPayroll: PayrollRecord = {
+      id: Date.now(),
+      employee_id: formData.employee_id,
+      employee_name: formData.employee_name,
+      employee_type: "Employee",
+      period_start: formData.period_from,
+      period_end: formData.period_to,
+      working_days: formData.working_days,
+      days_present: formData.days_present,
+      days_absent: formData.working_days - formData.days_present,
+      base_salary: baseSalary,
+      gross_amount: formData.net_amount,
+      deductions: 0,
+      net_amount: formData.net_amount,
+      payment_status: formData.payroll_status,
+      payment_date: formData.payment_date || undefined,
+      payment_mode: formData.payment_mode || undefined,
+      bank_transaction_ref: formData.bank_transaction_ref || undefined,
+      notes: formData.notes || undefined,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    onSave(newPayroll);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-30 transition-opacity"
+          onClick={onClose}
+        />
+        <div className="relative w-full max-w-2xl rounded-lg bg-white shadow-xl dark:bg-gray-800">
+          <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Payroll Entry</h3>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative employee-dropdown-container">
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Employee <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.employee_search || formData.employee_name}
+                    onChange={(e) => {
+                      setFormData({ ...formData, employee_search: e.target.value, employee_id: 0, employee_name: "" });
+                      setShowEmployeeDropdown(true);
+                    }}
+                    onFocus={() => {
+                      if (employees.length > 0) {
+                        setShowEmployeeDropdown(true);
+                      }
+                    }}
+                    placeholder="Search and select employee"
+                    required
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                  {showEmployeeDropdown && filteredEmployees.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredEmployees.map((employee) => (
+                        <button
+                          key={employee.id}
+                          type="button"
+                          onClick={() => handleEmployeeSelect(employee)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          {employee.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {showEmployeeDropdown && filteredEmployees.length === 0 && formData.employee_search && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg p-4 text-sm text-gray-500 dark:text-gray-400">
+                      No employees found
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Payroll Status <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.payroll_status}
+                  onChange={(e) => setFormData({ ...formData, payroll_status: e.target.value as PaymentStatus })}
+                  required
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Paid">Paid</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Period From <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.period_from}
+                  onChange={(e) => setFormData({ ...formData, period_from: e.target.value })}
+                  required
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Period To <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.period_to}
+                  onChange={(e) => setFormData({ ...formData, period_to: e.target.value })}
+                  required
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Working Days <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.working_days}
+                  onChange={(e) => setFormData({ ...formData, working_days: Number(e.target.value) })}
+                  required
+                  min="0"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Days Present <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.days_present}
+                  onChange={(e) => setFormData({ ...formData, days_present: Number(e.target.value) })}
+                  required
+                  min="0"
+                  max={formData.working_days}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Net Amount <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.net_amount}
+                  onChange={(e) => setFormData({ ...formData, net_amount: Number(e.target.value) })}
+                  required
+                  min="0"
+                  step="0.01"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Payment Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.payment_date}
+                  onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  Payment Mode
+                </label>
+                <select
+                  value={formData.payment_mode}
+                  onChange={(e) => setFormData({ ...formData, payment_mode: e.target.value as PaymentMode })}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select Payment Mode</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="UPI">UPI</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Bank Transaction Reference Number
+              </label>
+              <input
+                type="text"
+                value={formData.bank_transaction_ref}
+                onChange={(e) => setFormData({ ...formData, bank_transaction_ref: e.target.value })}
+                placeholder="Enter transaction reference number"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                placeholder="Additional notes..."
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+              >
+                <Plus className="h-4 w-4" />
+                Create Payroll
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Edit Payroll SlideOver Component
+function EditPayrollSlideOver({
+  payroll,
+  employees,
+  isOpen,
+  onClose,
+  onSave,
+}: {
+  payroll: PayrollRecord;
+  employees: { id: number; name: string }[];
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (payroll: PayrollRecord) => void;
+}) {
+  const [formData, setFormData] = useState({
+    employee_id: payroll.employee_id || 0,
+    employee_name: payroll.employee_name,
+    payroll_status: payroll.payment_status,
+    period_from: payroll.period_start,
+    period_to: payroll.period_end,
+    working_days: payroll.working_days,
+    days_present: payroll.days_present,
+    net_amount: payroll.net_amount,
+    payment_date: payroll.payment_date || "",
+    payment_mode: payroll.payment_mode || "" as PaymentMode | "",
+    bank_transaction_ref: payroll.bank_transaction_ref || "",
+    notes: payroll.notes || "",
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        employee_id: payroll.employee_id || 0,
+        employee_name: payroll.employee_name,
+        payroll_status: payroll.payment_status,
+        period_from: payroll.period_start,
+        period_to: payroll.period_end,
+        working_days: payroll.working_days,
+        days_present: payroll.days_present,
+        net_amount: payroll.net_amount,
+        payment_date: payroll.payment_date || "",
+        payment_mode: payroll.payment_mode || "" as PaymentMode | "",
+        bank_transaction_ref: payroll.bank_transaction_ref || "",
+        notes: payroll.notes || "",
+      });
+    }
+  }, [isOpen, payroll]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.employee_id) {
+      showError("Validation Error", "Please select an employee");
+      return;
+    }
+
+    const selectedEmployee = employees.find(e => e.id === formData.employee_id);
+    if (!selectedEmployee) return;
+
+    const updatedPayroll: PayrollRecord = {
+      ...payroll,
+      employee_id: formData.employee_id,
+      employee_name: formData.employee_name,
+      period_start: formData.period_from,
+      period_end: formData.period_to,
+      working_days: formData.working_days,
+      days_present: formData.days_present,
+      days_absent: formData.working_days - formData.days_present,
+      net_amount: formData.net_amount,
+      payment_status: formData.payroll_status,
+      payment_date: formData.payment_date || undefined,
+      payment_mode: formData.payment_mode || undefined,
+      bank_transaction_ref: formData.bank_transaction_ref || undefined,
+      notes: formData.notes || undefined,
+      updated_at: new Date().toISOString(),
+    };
+
+    onSave(updatedPayroll);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      <div className="fixed inset-0 bg-black bg-opacity-30 transition-opacity" onClick={onClose} />
+      <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
+        <div className="w-screen max-w-2xl">
+          <div className="flex h-full flex-col bg-white shadow-xl dark:bg-gray-800">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Payroll Entry</h2>
+              <button
+                onClick={onClose}
+                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Employee <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.employee_id}
+                      onChange={(e) => {
+                        const employee = employees.find(emp => emp.id === Number(e.target.value));
+                        setFormData({
+                          ...formData,
+                          employee_id: Number(e.target.value),
+                          employee_name: employee?.name || "",
+                        });
+                      }}
+                      required
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value={0}>Select Employee</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Payroll Status <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.payroll_status}
+                      onChange={(e) => setFormData({ ...formData, payroll_status: e.target.value as PaymentStatus })}
+                      required
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Hold">Hold</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Period From <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.period_from}
+                      onChange={(e) => setFormData({ ...formData, period_from: e.target.value })}
+                      required
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Period To <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.period_to}
+                      onChange={(e) => setFormData({ ...formData, period_to: e.target.value })}
+                      required
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Working Days <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.working_days}
+                      onChange={(e) => setFormData({ ...formData, working_days: Number(e.target.value) })}
+                      required
+                      min="0"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Days Present <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.days_present}
+                      onChange={(e) => setFormData({ ...formData, days_present: Number(e.target.value) })}
+                      required
+                      min="0"
+                      max={formData.working_days}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Net Amount <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.net_amount}
+                      onChange={(e) => setFormData({ ...formData, net_amount: Number(e.target.value) })}
+                      required
+                      min="0"
+                      step="0.01"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Payment Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.payment_date}
+                      onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Payment Mode
+                    </label>
+                    <select
+                      value={formData.payment_mode}
+                      onChange={(e) => setFormData({ ...formData, payment_mode: e.target.value as PaymentMode })}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">Select Payment Mode</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="UPI">UPI</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                    Bank Transaction Reference Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.bank_transaction_ref}
+                    onChange={(e) => setFormData({ ...formData, bank_transaction_ref: e.target.value })}
+                    placeholder="Enter transaction reference number"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                    Notes
+                  </label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                    placeholder="Additional notes..."
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700 mt-6">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+                >
+                  <Check className="h-4 w-4" />
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
