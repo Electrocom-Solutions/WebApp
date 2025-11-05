@@ -19,7 +19,6 @@ import {
   CreditCard,
   Package,
   ListTodo,
-  BarChart3,
   Bell,
   Mail,
   Building2,
@@ -63,7 +62,6 @@ const navigationGroups = [
   {
     title: "Reports & Automation",
     items: [
-      { name: "Reports", href: "/reports", icon: BarChart3 },
       { name: "Notifications", href: "/notifications", icon: Bell },
       { name: "Email Templates", href: "/email-templates", icon: Mail },
     ],

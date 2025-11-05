@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,11 @@ type TaskResourceSummary = {
     total: number;
   }[];
 };
+
+const months = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 const mockTaskResources: TaskResourceSummary[] = [
   {
@@ -75,9 +80,21 @@ const mockTaskResources: TaskResourceSummary[] = [
 ];
 
 export default function TaskResourcesPage() {
+  const currentDate = new Date();
+  const currentMonth = months[currentDate.getMonth()];
+  const currentYear = currentDate.getFullYear();
+
   const [taskResources, setTaskResources] = useState<TaskResourceSummary[]>(mockTaskResources);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
+  const [selectedYear, setSelectedYear] = useState<string | number>(currentYear);
+
+  const years = useMemo(() => {
+    const startYear = 2020;
+    const endYear = currentYear + 1;
+    return Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
+  }, [currentYear]);
 
   const handleGenerateReport = () => {
     const csvContent = [
@@ -105,13 +122,25 @@ export default function TaskResourcesPage() {
     URL.revokeObjectURL(url);
   };
 
-  const filteredTasks = taskResources.filter(task =>
-    searchQuery === "" ||
-    task.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.project_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTasks = useMemo(() => {
+    return taskResources.filter(task => {
+      // Search filter
+      const matchesSearch = searchQuery === "" ||
+        task.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.project_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.location.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Month and year filter
+      const taskDate = new Date(task.task_date);
+      const taskMonth = months[taskDate.getMonth()];
+      const taskYear = taskDate.getFullYear();
+      const matchesMonth = selectedMonth === "All" || taskMonth === selectedMonth;
+      const matchesYear = selectedYear === "All" || taskYear === Number(selectedYear);
+
+      return matchesSearch && matchesMonth && matchesYear;
+    });
+  }, [taskResources, searchQuery, selectedMonth, selectedYear]);
 
   const totalCost = filteredTasks.reduce((sum, task) => sum + task.total_cost, 0);
   const totalResources = filteredTasks.reduce((sum, task) => sum + task.total_resources, 0);
@@ -170,15 +199,39 @@ export default function TaskResourcesPage() {
           </div>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Search by employee, client, project, or location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="All">All Months</option>
+              {months.map(month => (
+                <option key={month} value={month}>{month}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value === "All" ? "All" : Number(e.target.value))}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="All">All Years</option>
+              {years.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Search by employee, client, project, or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </div>
 
         <div className="space-y-4">
