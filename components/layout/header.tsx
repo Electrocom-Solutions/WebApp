@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown";
 import { mockNotifications } from "@/lib/mock-data/notifications";
+import { showConfirm } from "@/lib/sweetalert";
 
 export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: string[] }) {
   const router = useRouter();
@@ -138,7 +139,24 @@ export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: st
                     <Settings className="h-4 w-4" />
                     Settings
                   </button>
-                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <button
+                    onClick={async () => {
+                      const confirmed = await showConfirm(
+                        "Logout",
+                        "Are you sure you want to logout?",
+                        "Logout",
+                        "Cancel"
+                      );
+                      if (confirmed) {
+                        // Handle logout logic here
+                        // For now, just close the menu
+                        setShowUserMenu(false);
+                        // In a real app, you would call your logout function
+                        // router.push("/login");
+                      }
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
                     <LogOut className="h-4 w-4" />
                     Logout
                   </button>
