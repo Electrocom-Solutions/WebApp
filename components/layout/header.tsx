@@ -1,8 +1,7 @@
 "use client";
 
-import { Bell, Search, Moon, Sun, User, Settings, LogOut } from "lucide-react";
+import { Bell, Moon, Sun, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown";
@@ -68,15 +67,6 @@ export function Header({ title, breadcrumbs }: { title: string; breadcrumbs?: st
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="w-64 pl-9"
-            />
-          </div>
-
           <Button
             variant="ghost"
             size="icon"
