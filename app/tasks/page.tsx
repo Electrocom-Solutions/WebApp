@@ -656,38 +656,61 @@ function CreateTaskModal({
   clients: typeof mockClients;
 }) {
   const [formData, setFormData] = useState({
+    task_name: "",
     employee_name: "",
-    client_id: "",
     project_name: "",
+    project_search: "",
     description: "",
-    date: new Date().toISOString().split("T")[0],
+    deadline: new Date().toISOString().split("T")[0],
     location: "",
     time_taken_minutes: 0,
     estimated_time_minutes: 0,
-    priority: "Medium" as TaskPriority,
-    status: "Open" as TaskStatus,
+    status: "Draft" as TaskStatus,
   });
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+
+  // Filter projects based on search
+  const filteredProjects = projects.filter((project) =>
+    project.toLowerCase().includes(formData.project_search.toLowerCase())
+  );
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.project-dropdown-container')) {
+        setShowProjectDropdown(false);
+      }
+    };
+
+    if (showProjectDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showProjectDropdown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const selectedClient = clients.find(c => c.id === parseInt(formData.client_id));
+    // Validate project is selected
+    if (!formData.project_name) {
+      alert("Please select a project");
+      return;
+    }
     
     const newTask: Task = {
       id: Math.max(...mockTasks.map((t) => t.id), 0) + 1,
       employee_id: Math.floor(Math.random() * 1000),
       employee_name: formData.employee_name,
-      client_id: selectedClient?.id,
-      client_name: selectedClient?.name,
       project_id: Math.floor(Math.random() * 1000),
       project_name: formData.project_name,
-      description: formData.description,
-      date: formData.date,
+      description: formData.description || formData.task_name,
+      date: formData.deadline,
       location: formData.location,
       time_taken_minutes: formData.time_taken_minutes,
       estimated_time_minutes: formData.estimated_time_minutes,
       status: formData.status,
-      priority: formData.priority,
+      priority: "Medium" as TaskPriority,
       assigned_by: "Admin",
       is_new: true,
       created_at: new Date().toISOString(),
@@ -711,96 +734,119 @@ function CreateTaskModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Task Name */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+              Task Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.task_name}
+              onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
+              placeholder="Enter task name"
+              required
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             {/* Employee */}
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
                 Assign to Employee <span className="text-red-500">*</span>
               </label>
-              <input
-                list="employees"
+              <select
                 value={formData.employee_name}
                 onChange={(e) => setFormData({ ...formData, employee_name: e.target.value })}
-                placeholder="Select or type employee name"
-                required
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
-              <datalist id="employees">
-                {employees.map((emp) => (
-                  <option key={emp} value={emp} />
-                ))}
-              </datalist>
-            </div>
-
-            {/* Date */}
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
-            </div>
-
-            {/* Client */}
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                Client <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.client_id}
-                onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
                 required
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               >
-                <option value="">Select client</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
+                <option value="">Select employee</option>
+                {employees.map((emp) => (
+                  <option key={emp} value={emp}>
+                    {emp}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Project */}
-            <div>
+            {/* Project - Searchable Dropdown */}
+            <div className="relative project-dropdown-container">
               <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
                 Project <span className="text-red-500">*</span>
               </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.project_search || formData.project_name}
+                  onChange={(e) => {
+                    setFormData({ ...formData, project_search: e.target.value, project_name: "" });
+                    setShowProjectDropdown(true);
+                  }}
+                  onFocus={() => {
+                    if (projects.length > 0) {
+                      setShowProjectDropdown(true);
+                    }
+                  }}
+                  placeholder="Search and select project"
+                  required
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+                {showProjectDropdown && filteredProjects.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredProjects.map((project) => (
+                      <button
+                        key={project}
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, project_name: project, project_search: project });
+                          setShowProjectDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        {project}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showProjectDropdown && filteredProjects.length === 0 && formData.project_search && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4 text-sm text-gray-500 dark:text-gray-400">
+                    No projects found
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Status <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                required
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              >
+                <option value="Draft">Draft</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Canceled">Canceled</option>
+              </select>
+            </div>
+
+            {/* Deadline */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                Deadline <span className="text-red-500">*</span>
+              </label>
               <input
-                list="projects"
-                value={formData.project_name}
-                onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
-                placeholder="Select or type project name"
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                 required
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
-              <datalist id="projects">
-                {projects.map((proj) => (
-                  <option key={proj} value={proj} />
-                ))}
-              </datalist>
-            </div>
-
-            {/* Priority */}
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                Priority
-              </label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Urgent">Urgent</option>
-              </select>
             </div>
 
             {/* Estimated Time */}
