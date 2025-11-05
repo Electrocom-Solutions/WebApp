@@ -36,7 +36,7 @@ export default function DashboardPage() {
       icon: Briefcase,
     },
     {
-      title: "Pending Tasks",
+      title: "Tasks In Progress",
       value: "24",
       change: "+8%",
       trend: "up",
