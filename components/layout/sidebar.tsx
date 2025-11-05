@@ -56,7 +56,7 @@ const navigationGroups = [
   {
     title: "Inventory & Resources",
     items: [
-      { name: "Resources", href: "/resources", icon: Package },
+      { name: "Stock", href: "/resources", icon: Package },
       { name: "Task Resources", href: "/task-resources", icon: ListTodo },
     ],
   },
