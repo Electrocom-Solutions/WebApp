@@ -153,9 +153,6 @@ export default function HolidayCalendarPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Description
-                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Actions
                 </th>
@@ -177,9 +174,6 @@ export default function HolidayCalendarPage() {
                     <Badge className={getTypeColor(holiday.type)}>
                       {holiday.type}
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {holiday.description || "-"}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -249,7 +243,6 @@ function HolidayModal({ holiday, onClose, onSave }: {
     name: holiday?.name || "",
     date: holiday?.date || "",
     type: holiday?.type || "Public",
-    description: holiday?.description || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -307,15 +300,6 @@ function HolidayModal({ holiday, onClose, onSave }: {
               <option value="Optional">Optional</option>
               <option value="Restricted">Restricted</option>
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
