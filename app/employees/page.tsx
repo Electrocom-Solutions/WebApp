@@ -10,18 +10,31 @@ import { showDeleteConfirm } from "@/lib/sweetalert";
 
 type Employee = {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   employee_id: string;
   email: string;
   phone: string;
-  department: string;
-  role: string;
+  photo?: string;
+  date_of_birth: string;
+  gender: "Male" | "Female";
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  aadhar_number: string;
+  pan_number: string;
+  designation: "Technician" | "Field Staff" | "Computer Operator";
   joining_date: string;
+  monthly_salary: number;
   status: "Active" | "On Leave" | "Terminated";
-  salary: number;
-  address?: string;
-  emergency_contact?: string;
   created_at: string;
+  // Legacy fields for backward compatibility
+  name?: string;
+  department?: string;
+  role?: string;
+  salary?: number;
 };
 
 const mockEmployees: Employee[] = [
@@ -95,8 +108,9 @@ export default function EmployeesPage() {
   const departments = ["all", ...Array.from(new Set(employees.map(e => e.department)))];
   
   const filteredEmployees = employees.filter((emp) => {
+    const fullName = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
     const matchesSearch = searchQuery === "" ||
-      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.email.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -163,7 +177,7 @@ export default function EmployeesPage() {
           <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">Monthly Payroll</div>
             <div className="text-2xl font-bold mt-1 text-sky-600">
-              ₹{employees.filter(e => e.status === "Active").reduce((sum, e) => sum + e.salary, 0).toLocaleString()}
+              ₹{employees.filter(e => e.status === "Active").reduce((sum, e) => sum + (e.monthly_salary || e.salary || 0), 0).toLocaleString()}
             </div>
           </div>
         </div>
@@ -238,7 +252,7 @@ export default function EmployeesPage() {
                         <User className="h-5 w-5 text-sky-600 dark:text-sky-400" />
                       </div>
                       <div>
-                        <div className="font-medium">{employee.name}</div>
+                        <div className="font-medium">{employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim()}</div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">{employee.employee_id}</div>
                       </div>
                     </div>
@@ -257,8 +271,8 @@ export default function EmployeesPage() {
                     <div className="flex items-center gap-1 text-sm">
                       <Briefcase className="h-4 w-4 text-gray-400" />
                       <div>
-                        <div className="font-medium">{employee.department}</div>
-                        <div className="text-gray-500 dark:text-gray-400">{employee.role}</div>
+                        <div className="font-medium">{employee.designation || employee.role || '-'}</div>
+                        <div className="text-gray-500 dark:text-gray-400">{employee.department || '-'}</div>
                       </div>
                     </div>
                   </td>
@@ -271,7 +285,7 @@ export default function EmployeesPage() {
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
-                    ₹{employee.salary.toLocaleString()}
+                    ₹{(employee.monthly_salary || employee.salary || 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -326,138 +340,335 @@ function EmployeeModal({ employee, onClose, onSave }: {
   onSave: (emp: Employee) => void;
 }) {
   const [formData, setFormData] = useState({
-    name: employee?.name || "",
+    first_name: employee?.first_name || employee?.name?.split(' ')[0] || "",
+    last_name: employee?.last_name || employee?.name?.split(' ').slice(1).join(' ') || "",
     employee_id: employee?.employee_id || `EMP-${Date.now().toString().slice(-3)}`,
     email: employee?.email || "",
     phone: employee?.phone || "",
-    department: employee?.department || "Technical",
-    role: employee?.role || "",
-    joining_date: employee?.joining_date || new Date().toISOString().split('T')[0],
-    status: employee?.status || "Active",
-    salary: employee?.salary?.toString() || "",
+    photo: employee?.photo || "",
+    date_of_birth: employee?.date_of_birth || "",
+    gender: (employee?.gender || "Male") as "Male" | "Female",
     address: employee?.address || "",
+    city: employee?.city || "",
+    state: employee?.state || "",
+    pincode: employee?.pincode || "",
+    country: employee?.country || "India",
+    aadhar_number: employee?.aadhar_number || "",
+    pan_number: employee?.pan_number || "",
+    designation: (employee?.designation || "Technician") as "Technician" | "Field Staff" | "Computer Operator",
+    joining_date: employee?.joining_date || new Date().toISOString().split('T')[0],
+    monthly_salary: employee?.monthly_salary?.toString() || employee?.salary?.toString() || "",
+    status: employee?.status || "Active",
   });
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, photo: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const savedEmployee: Employee = {
       id: employee?.id || Date.now(),
       ...formData,
-      salary: parseInt(formData.salary),
+      monthly_salary: parseInt(formData.monthly_salary) || 0,
       created_at: employee?.created_at || new Date().toISOString(),
+      // Legacy fields for backward compatibility
+      name: `${formData.first_name} ${formData.last_name}`.trim(),
+      salary: parseInt(formData.monthly_salary) || 0,
     };
     onSave(savedEmployee);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
-          <h2 className="text-xl font-semibold">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-800 p-6 flex items-center justify-between z-10">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
             {employee ? "Edit Employee" : "Add Employee"}
           </h2>
-          <button onClick={onClose}>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Name <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Basic details about the employee</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Employee ID</label>
-              <Input
-                value={formData.employee_id}
-                onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
-                disabled
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Phone</label>
-              <Input
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Department</label>
-              <select
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-              >
-                <option value="Technical">Technical</option>
-                <option value="Administration">Administration</option>
-                <option value="Sales">Sales</option>
-                <option value="Finance">Finance</option>
-                <option value="HR">HR</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Role</label>
-              <Input
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Joining Date</label>
-              <Input
-                type="date"
-                value={formData.joining_date}
-                onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-              >
-                <option value="Active">Active</option>
-                <option value="On Leave">On Leave</option>
-                <option value="Terminated">Terminated</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Monthly Salary (₹)</label>
-              <Input
-                type="number"
-                value={formData.salary}
-                onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-2">Address</label>
-              <Input
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  required
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  required
+                  placeholder="Enter last name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Date of Birth <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value as "Male" | "Female" })}
+                  required
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Photo
+                </label>
+                <div className="flex items-center gap-4">
+                  {formData.photo && (
+                    <img src={formData.photo} alt="Preview" className="h-20 w-20 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 dark:file:bg-sky-900/30 dark:file:text-sky-400"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          {/* Contact Details Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Contact Details</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Email, phone, and address information</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  required
+                  rows={2}
+                  placeholder="Enter full address"
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  City <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  required
+                  placeholder="Enter city"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  State <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  required
+                  placeholder="Enter state"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Pincode <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                  required
+                  placeholder="Enter pincode"
+                  maxLength={6}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  required
+                  placeholder="Enter country"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Identity Documents Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Identity Documents</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Official identification documents</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Aadhar Number <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.aadhar_number}
+                  onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value.replace(/\D/g, '').slice(0, 12) })}
+                  required
+                  placeholder="Enter 12-digit Aadhar number"
+                  maxLength={12}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  PAN Number <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.pan_number}
+                  onChange={(e) => setFormData({ ...formData, pan_number: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) })}
+                  required
+                  placeholder="Enter PAN number"
+                  maxLength={10}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Work Details Section */}
+          <div className="space-y-4">
+            <div className="border-b dark:border-gray-700 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Work Details</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Employment and designation information</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Designation <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.designation}
+                  onChange={(e) => setFormData({ ...formData, designation: e.target.value as "Technician" | "Field Staff" | "Computer Operator" })}
+                  required
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="Technician">Technician</option>
+                  <option value="Field Staff">Field Staff</option>
+                  <option value="Computer Operator">Computer Operator</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Joining Date <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  value={formData.joining_date}
+                  onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Monthly Salary (₹) <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="number"
+                  value={formData.monthly_salary}
+                  onChange={(e) => setFormData({ ...formData, monthly_salary: e.target.value })}
+                  required
+                  placeholder="Enter monthly salary"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  Status <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  required
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="Active">Active</option>
+                  <option value="On Leave">On Leave</option>
+                  <option value="Terminated">Terminated</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
