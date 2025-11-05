@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   ArrowLeft,
@@ -10,14 +10,13 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  Bell,
-  Printer,
   RefreshCw,
-  Paperclip,
   Plus,
   Check,
   X,
   AlertCircle,
+  Download,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -68,6 +67,41 @@ export default function TenderDetailPage() {
     documents: true,
     activityFeed: false,
   });
+
+  const handleDownloadDocument = (docId: number) => {
+    // Find the document and trigger download
+    const document = documents.find((d) => d.id === docId);
+    if (document) {
+      // Create a temporary link and trigger download
+      // In a real app, this would fetch the actual file from the server
+      console.log("Downloading document:", document.document_title);
+      // You can implement actual download logic here
+    }
+  };
+
+  const handleDeleteDocument = (docId: number) => {
+    // Handle document deletion
+    console.log("Deleting document:", docId);
+    // You can implement actual deletion logic here
+    if (confirm("Are you sure you want to delete this document?")) {
+      // Delete logic here
+    }
+  };
+
+  const handleAttachDocument = () => {
+    // Trigger file input
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.multiple = true;
+    fileInput.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        console.log("Files selected:", Array.from(files).map((f) => f.name));
+        // Handle file upload logic here
+      }
+    };
+    fileInput.click();
+  };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
@@ -157,6 +191,20 @@ export default function TenderDetailPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Mark Refund Button */}
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    console.log("Mark Refund clicked");
+                    // Handle mark refund logic here
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Mark Refund
+                </button>
+              </div>
             </div>
 
           </div>
@@ -196,21 +244,6 @@ export default function TenderDetailPage() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3">
-          <button className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
-            <Bell className="h-4 w-4" />
-            Generate EMD Reminder
-          </button>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-            <Printer className="h-4 w-4" />
-            Bulk Print Documents
-          </button>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-            <RefreshCw className="h-4 w-4" />
-            Mark Refund
-          </button>
-        </div>
 
         {/* Financials Panel */}
         <div className="rounded-lg bg-white shadow dark:bg-gray-800">
@@ -360,7 +393,10 @@ export default function TenderDetailPage() {
           {expandedSections.documents && (
             <div className="border-t border-gray-200 p-6 dark:border-gray-700">
               <div className="mb-4">
-                <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                <button
+                  onClick={handleAttachDocument}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
                   <Plus className="h-4 w-4" />
                   Attach Documents
                 </button>
@@ -385,9 +421,22 @@ export default function TenderDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <button className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-                      <Paperclip className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDownloadDocument(doc.id)}
+                        className="rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                        title="Download document"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDocument(doc.id)}
+                        className="rounded p-1 text-red-600 hover:bg-red-50 hover:text-red-900 dark:text-red-400 dark:hover:bg-red-900/30 dark:hover:text-red-300"
+                        title="Delete document"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
