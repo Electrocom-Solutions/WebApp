@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -704,22 +704,43 @@ function MarkAttendanceModal({
   const [formData, setFormData] = useState({
     employee_id: editingRecord?.employee_id || 0,
     employee_name: editingRecord?.employee_name || "",
+    employee_search: "",
     date: editingRecord?.date || format(new Date(), "yyyy-MM-dd"),
-    status: editingRecord?.status || ("Present" as AttendanceRecord["status"]),
+    status: (editingRecord?.status || "Present") as "Present" | "Absent" | "Half-Day" | "Leave",
     check_in: editingRecord?.check_in || "",
     check_out: editingRecord?.check_out || "",
-    notes: editingRecord?.notes || "",
   });
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
-  const handleEmployeeChange = (employeeId: number) => {
-    const employee = employees.find(e => e.id === employeeId);
-    if (employee) {
-      setFormData(prev => ({
-        ...prev,
-        employee_id: employee.id,
-        employee_name: employee.name,
-      }));
+  // Filter employees based on search
+  const filteredEmployees = employees.filter((employee) =>
+    employee.name.toLowerCase().includes(formData.employee_search.toLowerCase()) ||
+    employee.employee_id.toLowerCase().includes(formData.employee_search.toLowerCase())
+  );
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.employee-dropdown-container')) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+
+    if (showEmployeeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+  }, [showEmployeeDropdown]);
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    setFormData({
+      ...formData,
+      employee_id: employee.id,
+      employee_name: employee.name,
+      employee_search: employee.name,
+    });
+    setShowEmployeeDropdown(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -737,11 +758,10 @@ function MarkAttendanceModal({
       employee_id: formData.employee_id,
       employee_name: formData.employee_name,
       date: formData.date,
-      status: formData.status,
+      status: formData.status === "Half-Day" ? "Half Day" : formData.status,
       approval_status: editingRecord ? editingRecord.approval_status : "Pending",
       check_in: formData.check_in || undefined,
       check_out: formData.check_out || undefined,
-      notes: formData.notes || undefined,
       approved_by: editingRecord?.approved_by,
       approved_at: editingRecord?.approved_at,
     };
@@ -761,32 +781,59 @@ function MarkAttendanceModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
+          {/* Employee - Searchable Dropdown */}
+          <div className="relative employee-dropdown-container">
             <label className="block text-sm font-medium mb-2 dark:text-gray-200">
               Employee <span className="text-red-500">*</span>
             </label>
-            <select
-              value={formData.employee_id}
-              onChange={(e) => handleEmployeeChange(Number(e.target.value))}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
-              required
-            >
-              <option value={0}>Select Employee</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.employee_id})
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.employee_search || formData.employee_name}
+                onChange={(e) => {
+                  setFormData({ ...formData, employee_search: e.target.value, employee_id: 0, employee_name: "" });
+                  setShowEmployeeDropdown(true);
+                }}
+                onFocus={() => {
+                  if (employees.length > 0) {
+                    setShowEmployeeDropdown(true);
+                  }
+                }}
+                placeholder="Search and select employee"
+                required
+                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+              {showEmployeeDropdown && filteredEmployees.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredEmployees.map((employee) => (
+                    <button
+                      key={employee.id}
+                      type="button"
+                      onClick={() => handleEmployeeSelect(employee)}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      {employee.name} ({employee.employee_id})
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showEmployeeDropdown && filteredEmployees.length === 0 && formData.employee_search && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg p-4 text-sm text-gray-500 dark:text-gray-400">
+                  No employees found
+                </div>
+              )}
+            </div>
             {!editingRecord && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 If a record exists for this employee on the selected date, it will be replaced.
               </p>
             )}
           </div>
+
+          {/* Attendance Date */}
           <div>
             <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-              Date <span className="text-red-500">*</span>
+              Attendance Date <span className="text-red-500">*</span>
             </label>
             <Input
               type="date"
@@ -795,22 +842,31 @@ function MarkAttendanceModal({
               required
             />
           </div>
+
+          {/* Attendance Status */}
           <div>
-            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Status</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              Attendance Status <span className="text-red-500">*</span>
+            </label>
             <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
+              value={formData.status === "Half Day" ? "Half-Day" : formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as "Present" | "Absent" | "Half-Day" | "Leave" })}
+              required
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             >
               <option value="Present">Present</option>
               <option value="Absent">Absent</option>
+              <option value="Half-Day">Half-Day</option>
               <option value="Leave">Leave</option>
-              <option value="Half Day">Half Day</option>
             </select>
           </div>
+
+          {/* Check In and Check Out Times */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Check In</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Check In Time
+              </label>
               <Input
                 type="time"
                 value={formData.check_in}
@@ -818,7 +874,9 @@ function MarkAttendanceModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Check Out</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Check Out Time
+              </label>
               <Input
                 type="time"
                 value={formData.check_out}
@@ -826,16 +884,7 @@ function MarkAttendanceModal({
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm dark:text-gray-200"
-              placeholder="Additional notes..."
-            />
-          </div>
+
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
